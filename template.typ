@@ -4,12 +4,6 @@
 // Universidad Nacional de Córdoba (UNC)
 // =============================================================================
 
-// Shared color constants
-#let color-primary = rgb("#003366")
-#let color-text-muted = rgb("#444444")
-#let color-rule-light = rgb("#cccccc")
-#let color-page-num = rgb("#666666")
-
 #let thesis(
   title: "",
   subtitle: "",
@@ -18,9 +12,30 @@
   co-director: none,
   year: "",
   abstract-es: none,
+  clasificación: [],
+  palabras-clave: [],
   abstract-en: none,
   body,
 ) = {
+
+  show heading.where(level: 4): set text(
+    weight: "regular",
+    style: "italic",
+  )
+  show heading.where(level: 4): it => {
+    it.body + []
+  }
+
+  show "lambda_flechita": _ => {
+    box[
+      $lambda^arrow$
+    ]
+  }
+
+  show regex("App|Ctx|Term|Type"): it => {
+    set text(font: "DejaVu Sans Mono")
+    it
+  }
 
   // --------------------------------------------------------------------------
   // Document metadata
@@ -40,8 +55,7 @@
   // Text & fonts
   // --------------------------------------------------------------------------
   set text(
-    font: "New Computer Modern",
-    size: 11pt,
+    size: 12pt,
     lang: "es",
   )
 
@@ -61,19 +75,19 @@
       {
         set text(size: 16pt, weight: "bold")
         if it.numbering != none {
-          text(fill: color-primary)[Capítulo #counter(heading).display()]
+          [Capítulo #counter(heading).display()]
           linebreak()
         }
-        text(fill: color-primary, it.body)
+        text(it.body)
         v(0.3em)
-        line(length: 100%, stroke: 1.5pt + color-primary)
+        line(length: 100%, stroke: 1.5pt)
       }
     )
   }
 
   show heading.where(level: 2): it => {
     v(1em)
-    block(below: 0.5em, {
+    block(below: auto, {
       set text(size: 13pt, weight: "bold")
       it
     })
@@ -81,7 +95,7 @@
 
   show heading.where(level: 3): it => {
     v(0.8em)
-    block(below: 0.4em, {
+    block(below: auto, {
       set text(size: 11pt, weight: "bold", style: "italic")
       it
     })
@@ -90,7 +104,7 @@
   // --------------------------------------------------------------------------
   // Math
   // --------------------------------------------------------------------------
-  set math.equation(numbering: "(1)")
+  set math.equation(numbering: none)
 
   // --------------------------------------------------------------------------
   // Figures & tables
@@ -115,11 +129,6 @@
     text(font: "DejaVu Sans Mono", size: 9pt, it),
   )
 
-  // --------------------------------------------------------------------------
-  // Links
-  // --------------------------------------------------------------------------
-  show link: set text(fill: color-primary)
-
   // ==========================================================================
   // TITLE PAGE
   // ==========================================================================
@@ -128,61 +137,40 @@
     {
       set align(center)
 
-      // Institution logo placeholder
       v(0.5cm)
-      text(size: 13pt, weight: "bold", fill: color-primary,
-        "UNIVERSIDAD NACIONAL DE CÓRDOBA"
+      text(size: 18pt, weight: "bold",
+        "Universidad Nacional de Córdoba"
       )
-      linebreak()
-      text(size: 12pt, fill: color-primary,
-        "Facultad de Matemática, Astronomía, Física y Computación"
+      v(0.2cm)
+      text(size: 10pt, weight: "bold",
+        smallcaps[
+          Facultad de Matemática, Astronomía, Física y Computación
+      ]
       )
-      v(0.3cm)
-      line(length: 80%, stroke: 1pt + color-primary)
       v(1.5cm)
 
-      // Work type
-      text(size: 12pt, style: "italic",
-        "Trabajo Especial de Licenciatura en Ciencias de la Computación"
-      )
-      v(1.5cm)
+      // Institution logo
+      image("images/unc-logo.png", width: 4cm)
 
       // Title
-      text(size: 22pt, weight: "bold", fill: color-primary, title)
+      text(size: 20pt, weight: "bold", title)
       if subtitle != "" {
-        v(0.6cm)
-        text(size: 15pt, fill: color-text-muted, subtitle)
+        v(0em)
+        text(size: 10pt, subtitle)
       }
       v(2cm)
 
       // Author
-      grid(
-        columns: (1fr, 1fr),
-        align: (right + top, left + top),
-        column-gutter: 0.5em,
-        {
-          text(size: 11pt, weight: "bold", "Autor: ")
-        },
-        {
-          text(size: 11pt, author)
-        },
-        {
-          text(size: 11pt, weight: "bold", "Director: ")
-        },
-        {
-          text(size: 11pt, director)
-        },
-        if co-director != none {
-          text(size: 11pt, weight: "bold", "Co-director: ")
-        },
-        if co-director != none {
-          text(size: 11pt, co-director)
-        },
-      )
+      align(right, box(width: 50%)[
+        #set align(center)
+        #text(size: 9pt, weight: "bold", smallcaps[Formalización de Normalización por Evaluación para Cálculo Lambda Simplemente Tipado en Coq])
 
-      v(2cm)
-      line(length: 60%, stroke: 0.5pt)
-      v(0.5cm)
+        #text(size: 9pt, style: "italic", "Autor: " + author)
+
+        #text(size: 9pt, style: "italic", "Director: " + director)
+      ])
+
+      v(3cm)
       text(size: 11pt, "Córdoba, Argentina — " + year)
     }
   )
@@ -197,6 +185,15 @@
       v(1cm)
       set text(size: 10.5pt)
       abstract-es
+      align(bottom)[
+        #text(size: 9pt, weight: "bold", "Clasificación:")
+
+        #clasificación
+
+        #text(size: 9pt, weight: "bold", "Palabras clave:")
+
+        #palabras-clave
+      ]
     })
   }
 
@@ -219,11 +216,6 @@
   page(
     numbering: "i",
     {
-      v(1cm)
-      align(center, text(size: 14pt, weight: "bold", fill: color-primary,
-        "Índice"
-      ))
-      v(0.8cm)
       outline(
         indent: auto,
         depth: 3,
@@ -239,7 +231,7 @@
     header: context {
       let page-num = counter(page).get().first()
       if page-num > 1 {
-        set text(size: 9pt, fill: color-page-num)
+        set text(size: 9pt)
         let h = query(selector(heading.where(level: 1)).before(here()))
         if h.len() > 0 {
           let current = h.last()
@@ -250,18 +242,18 @@
             counter(page).display(),
           )
           v(-0.3em)
-          line(length: 100%, stroke: 0.4pt + color-rule-light)
+          line(length: 100%, stroke: 0.4pt)
         }
       }
     },
     footer: context {
       let page-num = counter(page).get().first()
       if calc.rem(page-num, 2) == 0 {
-        align(left, text(size: 9pt, fill: color-page-num,
+        align(left, text(size: 9pt,
           counter(page).display()
         ))
       } else {
-        align(right, text(size: 9pt, fill: color-page-num,
+        align(right, text(size: 9pt,
           counter(page).display()
         ))
       }
