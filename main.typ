@@ -814,7 +814,36 @@ En este trabajo utilizamos Rocq 8.20 para codificar las definiciones de la
 <sec-rocq-dominios>
 
 == Actualizaciones a Rocq 8.20
-<sec-rocq-actualizaciones>
+<sec-rocq-actualizaciones-8.20>
+
+La biblioteca CoqDomains @benton2012formalizing fue desarrollada originalmente
+para Coq 8.3/8.4 con SSReflect incluido en la distribución. Para utilizarla en
+Rocq 8.20 fue necesario actualizar dependencias y varios comandos y tácticas
+que dejaron de estar disponibles:
+
++ *Dependencia de mathcomp*: SSReflect (`ssreflect`, `ssrnat`, `ssrbool`, `eqtype`, `seq`, `ssrfun`) ya no se distribuye con Coq sino en el paquete separado `mathcomp`; los `Require Export ssreflect …` se reemplazaro por `From mathcomp Require Export …`.
+
++ *Cambios en la API de mathcomp 2.x*: el constructor `Pack` de las estructuras canónicas de `eqtype` pasó a requerir un envoltorio `Class` (`Equality.Pack (Equality.Class (Equality.Mixin …))`), y `EqMixin` se renombró a `Equality.Mixin` (`Finmap.v`).
+
++ *Comandos eliminados en Coq 8.20*: `Implicit Arguments` → `Arguments … {…}` (o `: clear implicits`); `Arguments Scope` → `Arguments … _%_scope`; `Hint Resolve …` ahora exige base explícita (`: core`); `Save.` requiere un nombre o se usa `Qed.`.
+
++ *Cambios en tácticas*: la reescritura de igualdades de setoide con `rewrite -> …` se reemplazó por `setoid_rewrite` (`MetricRec.v`, `uniirec.v`, `uniisound.v`, `typedsoundness.v`), y la táctica `Rewrites`(eliminada) por `rewrite` (`unii.v`, `typedlambda.v`).
+
++ *Ajustes puntuales*: `projT1` → `proj1_sig` (`PredomSum.v`), `Variable` → `Parameter` dentro de `Module Type` (`uniirec.v`), y adaptación de los patrones `let: Pack …` y `exist …` (`Categories.v`, `NSetoid.v`).
+
++ *Sistema de compilación*: se reemplazó el `Makefile` generado a mano por un
+  `_CoqProject` (`-R . Coqdomains`) compilado con `coq_makefile -f _CoqProject`.
+
+== Actualizaciones a Rocq 9.0.1
+<sec-rocq-actualizaciones-9.0.1>
+
+Sólo fue necesario corregir el lema `findom_ind` (`Finmap.v:479`): la antigua reescritura de tácticas `-> (proj2 (andP (proj2 (andP X'))))` dependía de que `andP/reflect` se desplegara en un subtérmino sintácticamente coincidente, lo que falló con `ssreflect` integrado en la `Stdlib` de `Rocq 9.0.1`. Fue reemplazado por:
+
+```rocq
+move/andP: X' => [/andP [Xa Xs] /andP [Xb Xu]]. rewrite Xs Xu. by [].
+```
+
+Esto descompone `X'` en sus conjunciones booleanas a través de las vistas `andP` y reescribe `sorted/uniq` directamente; el resto de la prueba permanece intacto.
 
 == Definiciones Principales
 <sec-rocq-definiciones>
