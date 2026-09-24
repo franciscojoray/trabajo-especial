@@ -797,6 +797,32 @@ $ R_j ("Var" i) = cases(
 Para ser precisos, la función de reificación $R$
 es el menor punto fijo de un funcional adecuado $ F : (NN × D → "Terms"_⊥ ) → (NN × D → "Terms"_⊥ ) $
 
+Esta formulación no es sólo una manera abstracta de escribir las tres
+ecuaciones anteriores. La reificación es una función parcial: algunos elementos
+de $D$ no corresponden a un término que pueda leerse de vuelta, y por eso su
+codominio debe incluir el elemento de indefinición $bot$ de
+$("Terms"_⊥)$. Además, la reificación de una abstracción vuelve a llamar a la
+misma función sobre el cuerpo de la función semántica, y la reificación de una
+aplicación la vuelve a llamar sobre sus dos componentes. Por lo tanto, las
+ecuaciones definen una función recursiva, no una definición por casos finita.
+
+El funcional $F$ recibe una aproximación $f$ de la función de reificación y
+produce una aproximación mejor: en el caso de una variable devuelve el término
+correspondiente; en el caso de una abstracción aplica la función semántica a una
+variable fresca, reifica el resultado en el contexto extendido y construye una
+abstracción; en el caso de una aplicación reifica ambos operandos y construye
+un término aplicado. Si alguna de esas operaciones encuentra $bot$, el
+resultado también es $bot$.
+
+El menor punto fijo $R = "lfp"(F)$ es entonces la solución definida por esas
+ecuaciones que contiene exactamente la información obtenida por aproximaciones
+finitas. Es el menor punto fijo porque no se agregan términos que no puedan
+justificarse mediante un número finito de pasos de lectura inversa; las partes
+que no pueden calcularse permanecen indefinidas. Finalmente, el teorema de
+punto fijo de la semántica de dominios garantiza que este menor punto fijo
+existe cuando $F$ es continuo, que es precisamente la propiedad que se verifica
+para la construcción formal utilizada en el capítulo siguiente.
+
 // =============================================================================
 // CAPÍTULO 4 — Rocq
 // =============================================================================
