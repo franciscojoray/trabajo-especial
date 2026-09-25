@@ -32,7 +32,7 @@
     ]
   }
 
-  show regex("App|Ctx|Term|Type"): it => {
+  show regex("\\b(App|Ctx|Term|Type)\\b"): it => {
     set text(font: "DejaVu Sans Mono")
     it
   }

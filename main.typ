@@ -103,6 +103,43 @@ Las razones principales para formalizar un lenguaje de programación son:
   es el programa: los tipos son las especificaciones y los términos bien
   tipados son los programas correctos por construcción.
 
+== Formalización matemática y asistentes de prueba
+<sec-formalizacion-matematica>
+
+La formalización matemática puede entenderse como la mecanización de un
+sistema deductivo: una teoría se expresa mediante un lenguaje preciso, axiomas
+y reglas de inferencia, y una demostración se convierte en una secuencia de
+transformaciones sintácticas que puede ser revisada automáticamente
+@gunther2019. Esto establece un puente entre la práctica matemática y la
+computación: la computadora no sólo permite ejecutar cálculos extensos, sino
+también comprobar que cada paso de una prueba respeta las reglas previamente
+establecidas.
+
+Esta comprobación se apoya en un núcleo pequeño y confiable que verifica las
+pruebas aceptadas por el sistema. La confianza no depende entonces de aceptar
+como correcta toda la implementación del asistente, sino de revisar el
+mecanismo fundamental que comprueba los términos y las derivaciones. El
+asistente de prueba añade una dimensión interactiva: además de verificar una
+prueba terminada, puede ayudar a construirla, administrar objetivos y
+reutilizar resultados ya formalizados.
+
+Los asistentes de prueba no comparten necesariamente la misma base lógica.
+Entre las alternativas se encuentran la lógica de orden superior, la teoría de
+tipos simples, las teorías de tipos dependientes y la teoría de conjuntos.
+Estas elecciones implican un equilibrio entre expresividad, automatización y
+la facilidad con que puede analizarse la corrección del propio sistema
+@gunther2019. En este trabajo elegimos Rocq, basado en el Cálculo de
+Construcciones Inductivas, porque permite expresar las definiciones del
+lenguaje junto con sus propiedades y verificar sus pruebas dentro de un mismo
+marco formal.
+
+Esta perspectiva también aclara el propósito de los capítulos siguientes. La
+definición del lenguaje no queda sólo como una descripción matemática externa:
+se traduce a tipos inductivos, funciones y juicios que Rocq puede comprobar.
+Del mismo modo, la semántica y la reificación se presentan como
+construcciones formales sobre las que pueden enunciarse y demostrarse
+propiedades, en lugar de quedar únicamente como una explicación informal.
+
 // =============================================================================
 // CAPÍTULO 2 — Definición del lenguaje
 // =============================================================================
