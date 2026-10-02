@@ -146,265 +146,247 @@ propiedades, en lugar de quedar únicamente como una explicación informal.
 = Definición del Lenguaje
 <cap-definicion>
 
-== Sintaxis de lambda_flechita
+Definimos el lenguaje en etapas. Primero presentamos la *sintaxis* de los
+términos, todavía sin tipos, y el mecanismo de *sustitución* que les da su
+comportamiento operativo. Luego damos una *semántica denotacional* para ese
+cálculo sin tipos, siguiendo el enfoque de Reynolds @reynolds1998theories, que
+explica por qué la auto-aplicación es problemática y cómo un dominio resuelve la
+dificultad. Recién después introducimos el *sistema de tipos* y la *igualdad*
+entre términos tipados, y cerramos el capítulo mostrando cómo se interpretan los
+tipos en el mundo semántico. A lo largo del capítulo seguimos, en lo esencial,
+las definiciones formalizadas en Rocq (capítulo @cap-rocq).
+
+== Sintaxis del cálculo lambda
 <sec-sintaxis>
 
-La teoría lambda_flechita posee cuatro _sorts_: contextos, tipos, sustituciones y términos; sus reglas introductorias se presentan en la @intro_sorts.
+Los términos del cálculo lambda se construyen con tres operaciones. Una
+*variable* es una referencia a una suposición ya hecha; una *abstracción*
+$lambda t$ introduce una suposición nueva y la deja disponible en el término
+$t$; una *aplicación* $"App" t space r$ usa $t$ como función y $r$ como
+argumento. No hay nada más: todo programa de este lenguaje es una combinación
+finita de estas tres piezas.
+
+=== Variables sin nombre
+
+En el cálculo lambda habitual las variables tienen nombre y la identidad se
+escribe $lambda x.x$: la variable $x$ está *ligada* por el $lambda$ y cada
+ocurrencia suya se refiere a ese ligador. En este trabajo usamos una
+representación *sin nombres*, los llamados índices de de Bruijn
+@barendregt1984lambda, que es la que resulta natural a la hora de formalizar el
+lenguaje en Rocq.
+
+La idea es que una variable no se identifica por un nombre sino por su
+*posición*: un número que indica cuántos ligadores hay que cruzar para llegar al
+ligador que la introduce. Para no tener que manejar numerales, escribimos ese
+número en notación unaria con dos símbolos: $sans("q")$ representa el índice $0$
+(el ligador más cercano) y $sans("p")$ es el *sucesor*. Así, $sans("q")$ es la
+suposición más reciente, $sans("q") sans("p")$ la anterior, $sans("q") sans("p") sans("p")$
+la anterior a esa, y así sucesivamente. Volveremos sobre esta notación en la
+@sec-de-bruijn.
+
+Con esta convención la identidad se escribe $lambda sans("q")$: la única
+variable del cuerpo es $sans("q")$, es decir, la introducida por el único
+$lambda$. La función constante $lambda x. lambda y. x$ se escribe $lambda lambda (sans("q") sans("p"))$:
+aquí $sans("q") sans("p")$ mira dos ligadores hacia atrás y encuentra el primero.
+La aplicación de la identidad a sí misma se escribe $"App" (lambda sans("q")) (lambda sans("q"))$.
+
+=== Lo que sale mal sin tipos
+
+Sin tipos, nada impide escribir una función que se aplica a sí misma. Sea
+$Delta = lambda ("App" sans("q") sans("q"))$, es decir, la función $lambda x. x space x$. Es un
+término perfectamente válido desde el punto de vista sintáctico. El problema
+aparece al *usarlo*: el término
+
+$ Omega = "App" space Delta space Delta = "App" (lambda ("App" sans("q") sans("q"))) (lambda ("App" sans("q") sans("q"))) $
+
+se reduce a sí mismo. En efecto, aplicar $Delta$ a $Delta$ consiste en
+reemplazar cada $sans("q")$ de su cuerpo por el argumento $Delta$, y volvemos a
+obtener exactamente $Omega$. El cálculo no termina: $Omega$ es un programa que
+gira para siempre sin producir ningún resultado.
+
+No se trata de un detalle menor. Veremos en la @sec-semantica-denotacional que
+la auto-aplicación es la fuente de una paradoja análoga a la de Russell, y que
+darle un significado matemático a un lenguaje que la permite obliga a salir de
+la teoría de conjuntos ingenua. El sistema de tipos de la @sec-tipos resuelve el
+problema de otra manera: simplemente rechaza términos como $Delta$.
+
+== Sustituciones
+<sec-sustituciones>
+
+Calcular con el cálculo lambda es sustituir. La regla que define la aplicación,
+la llamada *beta-reducción*, dice que $"App" (lambda t) space r$ se reduce a $t$
+con cada ocurrencia de $sans("q")$ reemplazada por $r$; escribiremos ese
+resultado $t space (id, r)$, anticipando la notación de sustituciones explícitas
+que introducimos enseguida.
+
+Una *sustitución* $sigma$ es una asignación de términos a variables: a la
+variable $i$-ésima le corresponde un término $sigma_i$. Aplicar $sigma$ a un
+término $t$, escrito $t space sigma$, reemplaza cada variable libre de $t$ por su
+imagen según $sigma$. La sustitución identidad $id$ deja cada variable como
+está.
+
+La única dificultad técnica es que las variables libres deben "levantarse" cuando
+la sustitución atraviesa un ligador. Si queremos sustituir dentro de $lambda t$,
+las variables libres de $t$ se refieren a ligadores que están *afuera* del
+$lambda$; al aplicar $sigma$ bajo el ligador, esos índices deben desplazarse una
+posición para no quedar capturados por el nuevo ligador. Esta operación de
+*debilitamiento* es el $sans("p")$ que ya conocemos, y en Rocq corresponde al
+renombrado y al operador de *lifting* de sustituciones.
+
+La sustitución de una sola variable es un caso particular: $t space (id, r)$ es la
+sustitución que manda $sans("q")$ a $r$ y a cada $sans("q") sans("p")^(i+1)$ a $sans("q") sans("p")^i$.
+Por ejemplo, $"App" (lambda sans("q")) space r$ se reduce a $sans("q") space (id, r) = r$: la
+identidad aplicada a $r$ da $r$.
+
+Las sustituciones se componen, y la composición es asociativa y tiene a la
+identidad como elemento neutro. Estas leyes, junto con las reglas de beta y eta
+que presentamos en la @sec-igualdad, forman la teoría ecuacional del lenguaje.
+No detallamos aquí todas las ecuaciones; las necesarias para razonar sobre los
+programas se concentran en esa sección.
+
+== Variables de de Bruijn
+<sec-de-bruijn>
+
+Con la sintaxis y la sustitución a mano, fijamos la convención exacta sobre las
+variables. En nuestra codificación las variables de de Bruijn se identifican con
+
+$ sans("q"), space sans("q") sans("p")^1, space sans("q") sans("p")^2, space . . . $
+
+donde la notación $sans("p")^i$ denota la composición $i$ veces de $sans("p")$
+consigo misma:
+
+$ sans("p")^i = cases(
+  sans(id) & "si" i = 0,
+  sans("p") & "si" i = 1,
+  sans("p") sans("p")^(i-1) & "si" i > 1
+) $
+
+En otras palabras, $sans("p")$ es la sustitución de debilitamiento que agrega una
+suposición fresca: aplicada a una variable, desplaza su índice en uno. La
+variable $sans("q") sans("p")^i$ es entonces el índice $i$, contando ligadores desde
+adentro hacia afuera.
+
+== Semántica denotacional
+<sec-semantica-denotacional>
+
+Damos ahora un significado matemático a los términos del cálculo *sin tipos*.
+La intuición es directa: una aplicación debería denotar la aplicación de una
+función a un argumento, y una abstracción debería denotar una función. La
+dificultad es que, sin tipos, esta intuición choca con una paradoja.
+
+Supongamos que existe un conjunto $S$ de valores tal que toda función de $S$ en
+$S$ es a su vez un valor, es decir, tal que $S arrow S subset.eq S$. Entonces toda
+función $f in S arrow S$ tiene un punto fijo: tomamos una función $p in S arrow S$
+cualquiera que cumpla $p space x = f space (x space x)$ y observamos que
+$p space p = f space (p space p)$. Pero si $S$ tiene al menos dos elementos, hay
+funciones $S arrow S$ sin punto fijo (por ejemplo, la que intercambia dos
+elementos). Contradicción @reynolds1998theories.
+
+El cálculo lambda puede *escribir* esta paradoja. Si la función $f$ está denotada
+por un término $e$, el término $lambda ("App" e space ("App" sans("q") sans("q")))$ denota la
+función $p$, y por lo tanto
+
+$ "App" (lambda ("App" e space ("App" sans("q") sans("q")))) (lambda ("App" e space ("App" sans("q") sans("q")))) $
+
+denota un punto fijo de $f$. En particular $Omega$ (de la @sec-sintaxis) es el
+caso en que $f$ es la identidad: el cálculo produce, para cada función, un punto
+fijo.
+
+La solución de Scott @scott1971continuous consiste en no pedir $S arrow S subset.eq S$ sobre
+conjuntos arbitrarios, sino restringirse a funciones *continuas* sobre un
+*dominio*. Se demuestra que existe un dominio no trivial $D$ que es isomorfo al
+dominio de sus funciones continuas en sí mismo; es decir, un dominio que resuelve
+la ecuación
+
+#math.equation(block: true, numbering: "(2.1)", $ D ≈ [D arrow D] ; $)
+
+donde $[D arrow D]$ es el dominio de las funciones continuas de $D$ en $D$. Como
+toda función continua sobre un dominio tiene un punto fijo, la paradoja
+desaparece: ya no se puede fabricar una función sin punto fijo.
+
+El isomorfismo (2.1) nos da dos funciones mutuamente inversas que iremos usando:
+una inyección $"lam" : [D arrow D] arrow D$ que convierte una función continua en un
+valor, y una proyección $phi : D arrow [D arrow D]$ que hace el camino de vuelta. Con
+ellas definimos la aplicación en $D$: si $d$ representa la función $f = phi space d$,
+entonces $d · e = f space e$.
+
+El significado de un término depende de los valores de sus variables libres. Un
+*entorno* $eta$ asigna a cada variable un valor de $D$. Interpretamos entonces
+cada término como una función que, dado un entorno, produce un valor:
+
+$ [| sans("q") sans("p")^i |] space eta = eta (i) $
+
+$ [| "App" t space r |] space eta = ([|t|] space eta) · ([|r|] space eta) $
+
+$ [| lambda t |] space eta = "lam" (a ↦ [|t|] space (eta, a)) . $
+
+La primera ecuación dice que una variable denota lo que el entorno le asigna.
+La segunda interpreta una aplicación como la aplicación en $D$ de la función
+denotada por $t$ al valor denotado por $r$. La tercera interpreta una abstracción
+como la función que a cada $a$ le asigna el valor de $t$ en el entorno extendido
+con $a$ en la primera posición.
+
+== Sistema de tipos
+<sec-tipos>
+
+El sistema de tipos del lenguaje, que llamamos lambda_flechita, rechaza términos
+como $Delta$ asignando un *tipo* a cada término bien formado. Los tipos se
+construyen a partir de un tipo básico $N$ (los números naturales) cerrado bajo
+espacios de funciones:
+
+$ A, B ::= N | A arrow B . $
+
+Un *contexto* $Gamma$ es una lista de tipos que registra las suposiciones en
+alcance. El contexto vacío se denota $diamond.small$, y extender $Gamma$ con una
+suposición de tipo $A$ se escribe $Gamma .A$. Como las variables son índices de
+de Bruijn, no hace falta nombrarlas: la suposición más reciente es la primera del
+contexto, y $sans("q") sans("p")^i$ se refiere al tipo en la posición $i$.
+
+El juicio $Gamma tack.r t : A$ dice que $t$ tiene tipo $A$ en el contexto $Gamma$.
+Sus reglas son tres y se muestran en la @intro_terms.
 
 #figure(
   grid(
-    columns: (1fr, 1fr),
+    columns: (1fr, 1fr, 1fr),
     column-gutter: 1em,
     row-gutter: 1.5em,
     [
-      #smallcaps("(ctx-sort)")
-      $
-        frac(
-          ,
-          "Ctx es un tipo"
-        )
-      $
+      #smallcaps("(var)")
+      $ frac(, Gamma .A tack.r sans("q") : A) $
     ],
     [
-      #smallcaps("(subs-sort)")
-      $
-        frac(
-          Gamma\, Delta in "Ctx",
-          Gamma arrow Delta "es un tipo"
-        )
-      $
+      #smallcaps("(abs)")
+      $ frac(Gamma .A tack.r t : B, Gamma tack.r lambda t : A arrow B) $
     ],
     [
-      #smallcaps("(type-sort)")
-      $
-        frac(
-          ,
-          "Type es un tipo"
-        )
-      $
-    ],
-    [
-      smallcaps("(term-sort)")
-      $
-        frac(
-          Gamma in "Ctx" quad A in "Type",
-          "Term"(Gamma, A) "es un tipo"
-        )
-      $
+      #smallcaps("(app)")
+      $ frac(Gamma tack.r t : A arrow B quad Gamma tack.r r : A, Gamma tack.r "App" t space r : B) $
     ],
   ),
-  caption: [Reglas introductorias para los _sorts_ de lambda_flechita.]
-)<intro_sorts>
-
-=== Reglas introductorias
-
-==== Contextos
-Un contexto corresponde a una lista de suposiciones. El contexto vacío
-se denota por $diamond.small$; a veces escribimos $tack.r t : A$ en lugar de $diamond.small tack.r t : A$. Si ya hemos hecho algunas suposiciones, digamos $Gamma$, entonces podemos hacer más; dado que los tipos actúan como suposiciones, podemos extender $Gamma$ con un tipo $A$: este contexto se escribe $Gamma .A$.
-
-#figure(
-  grid(
-    columns: (1fr, 1fr),
-    column-gutter: 1em,
-    row-gutter: 1.5em,
-    [
-      #smallcaps("(empty-ctx)")
-      $
-        frac(
-          ,
-          diamond.small in "Ctx"
-        )
-      $
-    ],
-    [
-      #smallcaps("(ext-ctx)")
-      $
-        frac(
-          Gamma in "Ctx" quad A in "Type",
-          Gamma .A in "Ctx"
-        )
-      $
-    ],
-  ),
-)
-
-Usualmente, cuando se agrega la suposición $A$ al contexto $Gamma$ (léase «$Gamma$ se extiende
-con el tipo $A$»), esta nueva suposición recibe un nombre. Por supuesto, dicho nombre debe ser
-fresco respecto de los nombres de las demás suposiciones en $Gamma$. En nuestro cálculo no
-hay necesidad de nombrar las suposiciones, ya que se referencian mediante índices de de Bruijn.
-
-
-==== Sustituciones
-Las reglas introductorias de los operadores para sustituciones se muestran
-en la @intro_subs Una sustitución $sigma in Gamma -> Delta$ puede entenderse como
-una asignación de términos bien tipados bajo $Gamma$ a las suposiciones de $Delta$.
-Otra lectura posible, proveniente del origen categórico de las sustituciones explícitas [],
-es que una sustitución $sigma in Gamma -> Delta$ es un morfismo en la categoría de contextos
-(lo que también explica que $sigma$ pueda pensarse como un mapeo
-$"Term"(Delta, A) -> "Term"(Gamma, A)$).
-
-#figure(
-  grid(
-    columns: (1fr, 1fr),
-    column-gutter: 1em,
-    row-gutter: 1.5em,
-    [
-      #smallcaps("(id-subs)")
-      $
-        frac(
-          Gamma in "Ctx",
-          id_Gamma in Gamma arrow Gamma
-        )
-      $
-    ],
-    [
-      #smallcaps("(empty-subs)")
-      $
-        frac(
-          Gamma in "Ctx",
-          chevron chevron.r in Gamma arrow diamond.small
-        )
-      $
-    ],
-  ),
-)
-#figure(
-  grid(
-    row-gutter: 1.5em,
-    [
-      #smallcaps("(comp-subs)")
-      $
-        frac(
-          Gamma\, Delta\, Sigma in "Ctx" quad delta in Delta arrow Sigma quad sigma in Sigma arrow Gamma,
-          sigma space delta in Delta arrow Gamma
-        )
-      $
-    ],
-    [
-      #smallcaps("(ext-subs)")
-      $
-        frac(
-          Gamma\, Delta in "Ctx" quad sigma in Delta arrow Gamma quad A in "Type" quad t in "Term"(Delta, A),
-          (sigma, t) in Delta arrow Gamma .A
-        )
-      $
-    ],
-    [
-      #smallcaps("(fst-subs)")
-      $
-        frac(
-          Gamma in "Ctx" quad A in "Type",
-          sans("p") in Gamma .A arrow Gamma
-        )
-      $
-    ]
-  ),
-  caption: [Reglas introductorias para las sustituciones en lambda_flechita]
-)<intro_subs>
-
-Los operadores pueden entenderse fácilmente usando la primera lectura: la sustitución
-identidad $id_Gamma$ mapea cada variable a sí misma. La sustitución vacía $chevron chevron.r$
-no debe mapear ninguna variable a nada. La composición se escribe como yuxtaposición; el
-operador de extensión, denotado mediante emparejamiento, hace patente que las
-sustituciones asignan términos bien tipados bajo un contexto a variables en otro. Finalmente,
-$sans("p")$ es la operación de _shifting_, también llamada sustitución de _weakening_, necesaria
-al extender un contexto con una nueva suposición.
-
-
-==== Tipos
-Consideramos sólo un tipo básico $N$ y la formación de espacios de funciones no dependientes, $A arrow B$.
-
-#figure(
-  grid(
-    columns: (1fr, 1fr),
-    column-gutter: 1em,
-    row-gutter: 1.5em,
-    [
-      #smallcaps("(iota-I)")
-      $
-        frac(
-          ,
-          N in "Type"
-        )
-      $
-    ],
-    [
-      #smallcaps("(Fun-I)")
-      $
-        frac(
-          A in "Type" quad B in "Type",
-          A arrow B in "Type"
-        )
-      $
-    ],
-  ),
-)
-
-
-==== Términos
-Las reglas introductorias para los términos se presentan en la @intro_terms. Nótese
-la regla #smallcaps("(subs-term)") para aplicar sustituciones a términos; en esta regla $t$ es un término con variables bajo $Delta$ y $sigma$ asigna términos,
-tipados bajo $Gamma$, a esas variables; así, tras aplicar $sigma$ a $t$ obtenemos un término
-bien tipado bajo $Gamma$.
-
-Como explicamos, usamos una variante de los índices unarios de
-de Bruijn: $sans("q")$ corresponde a $0$ y el sucesor de $n$ se obtiene aplicando la
-sustitución $sans("p")$ a $n$; por ejemplo, la penúltima suposición se referencia mediante $sans("q") sans("p")$, la anterior mediante $(sans("q") sans("p")) sans("p")$, y así sucesivamente.
-
-#figure(
-  grid(
-    columns: (1fr, 1fr),
-    column-gutter: 1em,
-    row-gutter: 1.5em,
-    [
-      #smallcaps("(hyp)")
-      $
-        frac(
-          Gamma in "Ctx" quad A in "Type",
-          sans("q") in "Term"(Gamma .A, A)
-        )
-      $
-    ],
-    [
-      #smallcaps("(Abs-I)")
-      $
-        frac(
-          Gamma in "Ctx" quad A in "Type" quad t in "Term"(Gamma .A, B),
-          lambda t in "Term"(Gamma, A arrow B)
-        )
-      $
-    ],
-  ),
-)
-#figure(
-  grid(
-    row-gutter: 1.5em,
-    [
-      #smallcaps("(App-I)")
-      $
-        frac(
-          Gamma in "Ctx" quad A in "Type" quad A\, B in "Type" quad t in "Term"(Gamma, A arrow B) quad r in "Term"(Gamma, A),
-          "App" t space r in "Term"(Gamma, B)
-        )
-      $
-    ],
-    [
-      #smallcaps("(subs-term)")
-      $
-        frac(
-          Gamma\, Delta in "Ctx" quad A in "Type" quad sigma in Gamma arrow Delta quad t in "Term"(Delta, A),
-          t sigma in "Term"(Gamma, A)
-        )
-      $
-    ]
-  ),
-  caption: [Términos de lambda_flechita]
+  caption: [Reglas de tipado de lambda_flechita.]
 )<intro_terms>
 
+La regla #smallcaps("(var)") tipa la variable más reciente con el tipo de la
+última suposición. La regla #smallcaps("(abs)") dice que si el cuerpo de una
+abstracción tiene tipo $B$ bajo una suposición extra de tipo $A$, entonces la
+abstracción tiene tipo $A arrow B$. La regla #smallcaps("(app)") exige que la
+función tenga tipo $A arrow B$ y el argumento tipo $A$, y da tipo $B$ al
+resultado.
 
-=== Axiomas
-==== Igualdad de términos
-El primer conjunto de axiomas corresponde a las reglas $(beta)$ y $(eta)$ de igualdad de términos.
+La identidad es tipable con cualquier tipo: $diamond.small tack.r lambda sans("q") : N arrow N$
+(la regla #smallcaps("(abs)") con $A = B = N$ y la regla #smallcaps("(var)")).
+En cambio $Delta = lambda ("App" sans("q") sans("q"))$ no es tipable: para aplicar $sans("q")$ a
+$sans("q")$ haría falta que la variable tuviera, al mismo tiempo, un tipo función
+$A arrow B$ y el tipo de su argumento $A$, lo que ninguna regla permite. El
+sistema de tipos cumple así su cometido: los términos "problemáticos" quedan
+afuera.
+
+== Igualdad de términos
+<sec-igualdad>
+
+Dos términos tipados se consideran *iguales* según una teoría ecuacional que
+codifica el comportamiento de las funciones. Las dos reglas principales son la
+*beta*, que describe la aplicación, y la *eta*, que describe la extensionalidad.
 
 #figure(
   grid(
@@ -413,177 +395,32 @@ El primer conjunto de axiomas corresponde a las reglas $(beta)$ y $(eta)$ de igu
     row-gutter: 1.5em,
     [
       #smallcaps("(beta)")
-      $
-        frac(
-          Gamma tack.r lambda t: A arrow B quad Gamma tack.r r: A,
-          Gamma tack.r "App" (lambda t) space r = t space (id_Gamma, r): B
-        )
-      $
+      $ frac(
+          Gamma tack.r lambda t : A arrow B quad Gamma tack.r r : A,
+          Gamma tack.r "App" (lambda t) space r = t space (id_Gamma, r) : B
+        ) $
     ],
     [
       #smallcaps("(eta)")
-      $
-        frac(
-          Gamma tack.r t: A arrow B,
-          Gamma tack.r lambda ("App" (t sans("p")) sans("q")) = t: A arrow B
-        )
-      $
+      $ frac(
+          Gamma tack.r t : A arrow B,
+          Gamma tack.r lambda ("App" (t sans("p")) sans("q")) = t : A arrow B
+        ) $
     ],
   ),
+  caption: [Reglas de igualdad de términos en lambda_flechita.]
 )
 
-==== Sustituciones en términos
-Las siguientes reglas axiomatizan la sustitución.
+La regla #smallcaps("(beta)") dice que aplicar una abstracción a un argumento es
+sustituir el argumento por la variable ligada: el lado derecho $t space (id_Gamma, r)$
+es, como vimos en la @sec-sustituciones, el resultado de reemplazar $sans("q")$ por $r$
+en $t$. La regla #smallcaps("(eta)") dice que toda función es igual a la
+abstracción que la aplica a su argumento: dos funciones son iguales si coinciden
+en todo argumento.
 
-#figure(
-  grid(
-    columns: (1fr, 1fr),
-    column-gutter: 1em,
-    row-gutter: 1.5em,
-    [
-      #smallcaps("(sub-ass)")
-      $
-        frac(
-          Sigma tack.r t: A quad Sigma tack.r sigma: Delta quad Gamma tack.r delta: Delta,
-          Gamma tack.r t space (sigma space delta) = (t space sigma) space delta: A
-        )
-      $
-    ],
-    [
-      #smallcaps("(sub-id)")
-      $
-        frac(
-          Gamma tack.r t: A,
-          Gamma tack.r t space id_Gamma = t: A
-        )
-      $
-    ],
-    [
-      #smallcaps("(snd-sub)")
-      $
-        frac(
-          Gamma tack.r t: A quad Gamma tack.r sigma: Delta,
-          Gamma tack.r sans("q") space (sigma, t) = t: A
-        )
-      $
-    ],
-    [
-      #smallcaps("(abs-sub)")
-      $
-        frac(
-          Delta tack.r lambda t: A arrow B quad Gamma tack.r sigma: Delta,
-          Gamma tack.r (lambda t) space sigma = lambda (t space (sigma space sans("p"), sans("q"))): A arrow B
-        )
-      $
-    ],
-  ),
-)
-#figure(
-  grid(
-    row-gutter: 1.5em,
-    [
-      #smallcaps("(app-sub)")
-      $
-        frac(
-          Delta tack.r t: A arrow B quad Delta tack.r r: A quad Gamma tack.r sigma: Delta,
-          Gamma tack.r ("App" t space r) space sigma = "App" (t space sigma) space (r space sigma): B
-        )
-      $
-    ],
-  ),
-)
-
-==== Sustituciones
-Las siguientes reglas pueden entenderse como la teoría ecuacional
-de una categoría con productos finitos: asociatividad de la composición, la
-identidad como elemento neutro de la composición, la propiedad universal del
-objeto terminal y propiedades de los productos binarios: postcomposición con
-la primera proyección, identidad para productos y postcomposición con un
-morfismo mediador hacia un objeto producto.
-
-#figure(
-  grid(
-    columns: (1fr, 1fr),
-    column-gutter: 1em,
-    row-gutter: 1.5em,
-    [
-      #smallcaps("(sub-ass)")
-      $
-        frac(
-          Theta tack.r sigma: sigma quad Sigma tack.r delta: Delta quad Gamma tack.r gamma: Delta,
-          Gamma tack.r (sigma space delta) space gamma = sigma space (delta space gamma)
-        )
-      $
-    ],
-    [
-      #smallcaps("(sub-empty)")
-      $
-        frac(
-          Gamma tack.r sigma: diamond.small,
-          Gamma tack.r chevron chevron.r space sigma = chevron chevron.r: diamond.small
-        )
-      $
-    ],
-    [
-      #smallcaps("(sub-idl)")
-      $
-        frac(
-          Gamma tack.r sigma: Delta,
-          Gamma tack.r id_Gamma space sigma = sigma: Delta
-        )
-      $
-    ],
-    [
-      #smallcaps("(sub-idr)")
-      $
-        frac(
-          Gamma tack.r sigma: Delta,
-          Gamma tack.r sigma space id_Delta = sigma: Delta
-        )
-      $
-    ],
-    [
-      #smallcaps(("(sub-id-empty)"))
-      $
-        frac(
-          ,
-          diamond.small tack.r id_diamond.small = chevron chevron.r: diamond.small 
-        )
-      $
-    ],
-    [
-      #smallcaps(("(sub-id-ext)"))
-      $
-        frac(
-          ,
-          Gamma .A tack.r id_(Gamma .A) = (sans("p"), sans("q")): Gamma .A
-        )
-      $
-    ],
-    [
-      #smallcaps(("(sub-fst)"))
-      $
-        frac(
-          Gamma tack.r t: A quad Gamma tack.r sigma: Delta,
-          Gamma tack.r sans("p") space (sigma, t) = sigma: Delta
-        )
-      $
-    ],
-    [
-      #smallcaps(("(sub-map)"))
-      $
-        frac(
-          Gamma tack.r t: A quad Gamma tack.r sigma: Delta quad Sigma tack.r delta: Delta,
-          Gamma tack.r (sigma, t) space delta = (sigma space delta, t space delta): Sigma .A
-        )
-      $
-    ],
-  ),
-)
-
-==== Congruencia
-Los dos últimos grupos de reglas corresponden a la reflexividad, simetría,
-transitividad y clausura contextual de la igualdad.
+Sobre estas dos reglas la igualdad se cierra como una *congruencia*, con las
+reglas de la @congruencia: las tres primeras hacen de ella una relación de
+equivalencia, y las dos últimas la hacen compatible con los constructores.
 
 #figure(
   grid(
@@ -592,125 +429,73 @@ transitividad y clausura contextual de la igualdad.
     row-gutter: 1.5em,
     [
       #smallcaps("(refl)")
-      $
-        frac(
-          Gamma tack.r t: A,
-          Gamma tack.r t = t: A
-        )
-      $
-    ],
-    [
-      #smallcaps("(refl-subs)")
-      $
-        frac(
-          Gamma tack.r sigma: Delta,
-          Gamma tack.r sigma = sigma: Delta
-        )
-      $
+      $ frac(Gamma tack.r t : A, Gamma tack.r t = t : A) $
     ],
     [
       #smallcaps("(sym)")
-      $
-        frac(
-          Gamma tack.r t = r: A,
-          Gamma tack.r r = t: A
-        )
-      $
-    ],
-    [
-      #smallcaps("(sym-subs)")
-      $
-        frac(
-          Gamma tack.r sigma = sigma': Delta,
-          Gamma tack.r sigma' = sigma: Delta
-        )
-      $
+      $ frac(Gamma tack.r t = r : A, Gamma tack.r r = t : A) $
     ],
     [
       #smallcaps("(trans)")
-      $
-        frac(
-          Gamma tack.r t = r: A quad Gamma tack.r r = s: A,
-          Gamma tack.r t = s: A
-        )
-      $
+      $ frac(Gamma tack.r t = r : A quad Gamma tack.r r = s : A, Gamma tack.r t = s : A) $
     ],
-    [
-      #smallcaps("(trans-subs)")
-      $
-        frac(
-          Gamma tack.r sigma = delta: Delta quad Gamma tack.r delta = gamma: Delta,
-          Gamma tack.r sigma = gamma: Delta
-        )
-      $
-    ],
-  )
-)
-
-#figure(
-  grid(
-    columns: (1fr, 1fr),
-    column-gutter: 1em,
-    row-gutter: 1.5em,
     [
       #smallcaps("(cong-app)")
-      $
-        frac(
-          Gamma tack.r t = t': A quad Gamma tack.r r = r': A,
-          Gamma tack.r "App" t space r = "App" t' space r': A
-        )
-      $
+      $ frac(Gamma tack.r t = t' : A arrow B quad Gamma tack.r r = r' : A, Gamma tack.r "App" t space r = "App" t' space r' : B) $
     ],
     [
       #smallcaps("(cong-abs)")
-      $
-        frac(
-          Gamma .A tack.r t = t': B,
-          Gamma tack.r lambda t = lambda t': A arrow B
-        )
-      $
-    ],
-  )
-)
-#figure(
-  grid(
-    row-gutter: 1.5em,
-    [
-      #smallcaps("(cong-subs)")
-      $
-        frac(
-          Delta tack.r t = t': A quad Gamma tack.r sigma = sigma': Delta,
-          Gamma tack.r t space sigma = t' space sigma': A
-        )
-      $
+      $ frac(Gamma .A tack.r t = t' : B, Gamma tack.r lambda t = lambda t' : A arrow B) $
     ],
   ),
-)
-#figure(
-  grid(
-    columns: (1fr, 1fr),
-    column-gutter: 1em,
-    row-gutter: 1.5em,
-    [
-      #smallcaps("(cong-map)")
-      $
-        frac(
-          Gamma tack.r t = t': A quad Gamma tack.r sigma = sigma': Delta,
-          Gamma tack.r (sigma, t) = (sigma', t'): Delta .A
-        )
-      $
-    ],
-    [
-      #smallcaps("(cong-comp)")
-      $
-        frac(
-          Gamma .A tack.r sigma = sigma': Delta quad Gamma tack.r delta = delta': Sigma,
-          Gamma tack.r sigma space delta = sigma' space delta': Sigma
-        )
-      $
-    ],
-  )
-)
+  caption: [Reglas de congruencia de la igualdad de términos en lambda_flechita.]
+)<congruencia>
+
+Las reglas #smallcaps("(refl)"), #smallcaps("(sym)") y #smallcaps("(trans)")
+dicen que la igualdad es reflexiva, simétrica y transitiva. Las reglas
+#smallcaps("(cong-app)") y #smallcaps("(cong-abs)") dicen que la igualdad se
+propaga por cualquier contexto: si dos funciones son iguales y dos argumentos son
+iguales, sus aplicaciones son iguales; y si dos cuerpos son iguales, sus
+abstracciones también. Así el lenguaje admite un razonamiento ecuacional
+estándar.
+
+== Semántica del sistema tipado
+<sec-semantica-tipada>
+
+Para cerrar el capítulo, extendemos la semántica denotacional a los términos
+*tipados*. La idea es interpretar cada tipo $A$ como un conjunto $[|A|] subset.eq D$ de
+valores "bien comportados" y comprobar que todo término bien tipado denota, para
+entornos apropiados, un valor dentro de la interpretación de su tipo.
+
+El tipo base $N$ exige valores numéricos que el dominio de la ecuación (2.1) no
+tiene, así que lo extendemos con un componente plano de naturales:
+$D ≈ [D arrow D] ⊕ "Nat"_⊥$ (sobre el cual $phi$ y la aplicación $·$ quedan
+indefinidas). Con este dominio definimos
+
+$ [|N|] = "Nat"_⊥ $
+
+$ [|A arrow B|] = { d in D | d · e in [|B|] "para todo" e in [|A|] } $
+
+El tipo base $N$ se interpreta como los naturales del dominio, y el tipo función
+$A arrow B$ como el conjunto de valores $d$ que, aplicados a cualquier elemento de
+$[|A|]$, producen un elemento de $[|B|]$. En otras palabras, $[|A arrow B|]$ es el
+conjunto de las funciones que respetan las interpretaciones.
+
+Un contexto $Gamma = A_1 . A_2 . . . . A_n$ se interpreta como el producto
+$[|Gamma|] = [|A_1|] times ... times [|A_n|]$: un entorno semántico asigna a cada
+variable un valor del tipo correspondiente. Se demuestra por inducción sobre las
+derivaciones que la interpretación es *sólida*:
+
+_Solidez._ Si $Gamma tack.r t : A$, entonces $[|t|] space eta in [|A|]$ para todo
+entorno $eta in [|Gamma|]$.
+
+Es decir, el sistema de tipos garantiza que un programa bien tipado nunca sale de
+la interpretación de su tipo, sin importar cómo se instancien sus variables. Hay
+una sutileza que conviene señalar: una *variable* de tipo función no puede
+interpretarse como un natural, porque los naturales no pertenecen a
+$[|A arrow B|]$. Resolver esto —interpretar cada variable con la expansión
+adecuada a su tipo— es parte del trabajo del capítulo @cap-reificacion, donde
+además la reificación devuelve el término de vuelta a la sintaxis.
 
 // =============================================================================
 // CAPÍTULO 3 — Reificación
@@ -742,17 +527,7 @@ necesitamos saber que $R([|t|]) ≡ R([|t'|])$.
 
 === Propiedades del sistema formal
 
-En nuestra codificación las variables de de Bruijn pueden identificarse con
-$sans("q"), sans("q") sans("p")^1, sans("p")^2, . . .$
-donde la notación $sans("p")^i$ denota la composición $i$ veces de $sans("p")$ consigo misma:
-
-$ sans("p")^i = cases(
-  sans(id) & "si" i = 0,
-  sans("p") & "si" i = 1,
-  sans("p") sans("p")^(i-1) & "si" i > 1
-) $
-
-Finalmente caracterizamos el conjunto de términos en forma normal. La forma de
+Caracterizamos el conjunto de términos en forma normal. La forma de
 las formas normales, en el contexto del cálculo lambda no tipado con variables nombradas,
 es $λ x_1 .λ x_2 . . . . λ x_n .(. . . ((y space t_1) space t_2) . . .) space t_m$,
 donde $m ⩾ 0, n ⩾ 0$, y cada $t_i$ tiene también esa forma; es fácil ver que la siguiente
