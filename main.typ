@@ -314,8 +314,7 @@ desaparece: ya no se puede fabricar una función sin punto fijo.
 El isomorfismo (2.1) nos da dos funciones mutuamente inversas que iremos usando:
 una inyección $"lam" : [D arrow D] arrow D$ que convierte una función continua en un
 valor, y una proyección $phi : D arrow [D arrow D]$ que hace el camino de vuelta. Con
-ellas definimos la aplicación en $D$: si $d$ representa la función $f = phi space d$,
-entonces $d · e = f space e$.
+ellas definimos la aplicación en $D$ como $d · e = (phi space d) space e$.
 
 El significado de un término depende de los valores de sus variables libres. Un
 *entorno* $eta$ asigna a cada variable un valor de $D$. Interpretamos entonces
@@ -323,13 +322,14 @@ cada término como una función que, dado un entorno, produce un valor:
 
 $ [| sans("q") sans("p")^i |] space eta = eta (i) $
 
-$ [| "App" t space r |] space eta = ([|t|] space eta) · ([|r|] space eta) $
+$ [| "App" t space r |] space eta = phi ([|t|] space eta) ([|r|] space eta) $
 
 $ [| lambda t |] space eta = "lam" (a ↦ [|t|] space (eta, a)) . $
 
 La primera ecuación dice que una variable denota lo que el entorno le asigna.
-La segunda interpreta una aplicación como la aplicación en $D$ de la función
-denotada por $t$ al valor denotado por $r$. La tercera interpreta una abstracción
+La segunda interpreta una aplicación: se le aplica $phi$ al valor denotado por
+$t$ para obtener una función, y esa función se aplica al valor denotado por $r$.
+La tercera interpreta una abstracción
 como la función que a cada $a$ le asigna el valor de $t$ en el entorno extendido
 con $a$ en la primera posición.
 
