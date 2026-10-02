@@ -190,6 +190,13 @@ $lambda$. La función constante $lambda x. lambda y. x$ se escribe $lambda lambd
 aquí $sans("q") sans("p")$ mira dos ligadores hacia atrás y encuentra el primero.
 La aplicación de la identidad a sí misma se escribe $"App" (lambda sans("q")) (lambda sans("q"))$.
 
+La sintaxis abstracta de los términos queda resumida en la gramática
+
+$ "Term" in.rev t ::= sans("q") sans("p")^i | lambda t | "App" t space t $
+
+donde $i$ recorre los números naturales: la primera alternativa son las
+variables, la segunda las abstracciones y la tercera las aplicaciones.
+
 === Lo que sale mal sin tipos
 
 Sin tipos, nada impide escribir una función que se aplica a sí misma. Sea
