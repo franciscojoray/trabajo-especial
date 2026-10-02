@@ -337,11 +337,13 @@ con $a$ en la primera posición.
 <sec-tipos>
 
 El sistema de tipos del lenguaje, que llamamos lambda_flechita, rechaza términos
-como $Delta$ asignando un *tipo* a cada término bien formado. Los tipos se
-construyen a partir de un tipo básico $N$ (los números naturales) cerrado bajo
-espacios de funciones:
+como $Delta$ asignando un *tipo* a cada término bien formado. La gramática
+abstracta de los tipos es
 
-$ A, B ::= N | A arrow B . $
+$ "Type" in.rev A ::= N | A arrow B $
+
+es decir, un tipo es el tipo básico $N$ (los números naturales) o un espacio de
+funciones $A arrow B$.
 
 Un *contexto* $Gamma$ es una lista de tipos que registra las suposiciones en
 alcance. El contexto vacío se denota $diamond.small$, y extender $Gamma$ con una
