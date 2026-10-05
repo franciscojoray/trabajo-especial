@@ -153,8 +153,7 @@ cálculo sin tipos, siguiendo el enfoque de Reynolds @reynolds1998theories, que
 explica por qué la auto-aplicación es problemática y cómo un dominio resuelve la
 dificultad. Recién después introducimos el *sistema de tipos* y la *igualdad*
 entre términos tipados, y cerramos el capítulo mostrando cómo se interpretan los
-tipos en el mundo semántico. A lo largo del capítulo seguimos, en lo esencial,
-las definiciones formalizadas en Rocq (capítulo @cap-rocq).
+tipos en el mundo semántico.
 
 == Sintaxis del cálculo lambda
 <sec-sintaxis>
@@ -172,8 +171,7 @@ En el cálculo lambda habitual las variables tienen nombre y la identidad se
 escribe $lambda x.x$: la variable $x$ está *ligada* por el $lambda$ y cada
 ocurrencia suya se refiere a ese ligador. En este trabajo usamos una
 representación *sin nombres*, los llamados índices de de Bruijn
-@barendregt1984lambda, que es la que resulta natural a la hora de formalizar el
-lenguaje en Rocq.
+@barendregt1984lambda, que es la representación que adoptamos.
 
 La idea es que una variable no se identifica por un nombre sino por su
 *posición*: un número que indica cuántos ligadores hay que cruzar para llegar al
@@ -251,8 +249,7 @@ la sustitución atraviesa un ligador. Si queremos sustituir dentro de $lambda t$
 las variables libres de $t$ se refieren a ligadores que están *afuera* del
 $lambda$; al aplicar $sigma$ bajo el ligador, esos índices deben desplazarse una
 posición para no quedar capturados por el nuevo ligador. Esta operación de
-*debilitamiento* es el $sans("p")$ que ya conocemos, y en Rocq corresponde al
-renombrado y al operador de *lifting* de sustituciones.
+*debilitamiento* es el $sans("p")$ que ya conocemos.
 
 La sustitución de una sola variable es un caso particular: $t space (id, r)$ es la
 sustitución que manda $sans("q")$ a $r$ y a cada $sans("q") sans("p")^(i+1)$ a $sans("q") sans("p")^i$.
