@@ -181,8 +181,22 @@ ligador que la introduce. Para no tener que manejar numerales, escribimos ese
 número en notación unaria con dos símbolos: $sans("q")$ representa el índice $0$
 (el ligador más cercano) y $sans("p")$ es el *sucesor*. Así, $sans("q")$ es la
 suposición más reciente, $sans("q") sans("p")$ la anterior, $sans("q") sans("p") sans("p")$
-la anterior a esa, y así sucesivamente. Volveremos sobre esta notación en la
-@sec-de-bruijn.
+la anterior a esa, y así sucesivamente. En definitiva, las variables se
+identifican con
+
+$ sans("q"), space sans("q") sans("p")^1, space sans("q") sans("p")^2, space . . . $
+
+donde la notación $sans("p")^i$ denota la composición $i$ veces de $sans("p")$
+consigo misma:
+
+$ sans("p")^i = cases(
+  sans(id) & "si" i = 0,
+  sans("p") & "si" i = 1,
+  sans("p") sans("p")^(i-1) & "si" i > 1
+) $
+
+Es decir, $sans("q") sans("p")^i$ es la variable de índice $i$, contando ligadores
+desde adentro hacia afuera.
 
 Con esta convención la identidad se escribe $lambda sans("q")$: la única
 variable del cuerpo es $sans("q")$, es decir, la introducida por el único
@@ -250,28 +264,6 @@ identidad como elemento neutro. Estas leyes, junto con las reglas de beta y eta
 que presentamos en la @sec-igualdad, forman la teoría ecuacional del lenguaje.
 No detallamos aquí todas las ecuaciones; las necesarias para razonar sobre los
 programas se concentran en esa sección.
-
-== Variables de de Bruijn
-<sec-de-bruijn>
-
-Con la sintaxis y la sustitución a mano, fijamos la convención exacta sobre las
-variables. En nuestra codificación las variables de de Bruijn se identifican con
-
-$ sans("q"), space sans("q") sans("p")^1, space sans("q") sans("p")^2, space . . . $
-
-donde la notación $sans("p")^i$ denota la composición $i$ veces de $sans("p")$
-consigo misma:
-
-$ sans("p")^i = cases(
-  sans(id) & "si" i = 0,
-  sans("p") & "si" i = 1,
-  sans("p") sans("p")^(i-1) & "si" i > 1
-) $
-
-En otras palabras, $sans("p")$ es la sustitución de debilitamiento que agrega una
-suposición fresca: aplicada a una variable, desplaza su índice en uno. La
-variable $sans("q") sans("p")^i$ es entonces el índice $i$, contando ligadores desde
-adentro hacia afuera.
 
 == Semántica denotacional
 <sec-semantica-denotacional>
