@@ -340,10 +340,9 @@ El sistema de tipos del lenguaje, que llamamos lambda_flechita, rechaza término
 como $Delta$ asignando un *tipo* a cada término bien formado. La gramática
 abstracta de los tipos es
 
-$ "Type" in.rev A ::= N | A arrow B $
+$ "Type" in.rev A, B ::= ★ | A arrow B $
 
-es decir, un tipo es el tipo básico $N$ (los números naturales) o un espacio de
-funciones $A arrow B$.
+es decir, un tipo es el tipo unitario $★$ o un espacio de funciones $A arrow B$.
 
 Un *contexto* $Gamma$ es una lista de tipos que registra las suposiciones en
 alcance. El contexto vacío se denota $diamond.small$, y extender $Gamma$ con una
@@ -382,8 +381,8 @@ abstracción tiene tipo $A arrow B$. La regla #smallcaps("(app)") exige que la
 función tenga tipo $A arrow B$ y el argumento tipo $A$, y da tipo $B$ al
 resultado.
 
-La identidad es tipable con cualquier tipo: $diamond.small tack.r lambda sans("q") : N arrow N$
-(la regla #smallcaps("(abs)") con $A = B = N$ y la regla #smallcaps("(var)")).
+La identidad es tipable con cualquier tipo: $diamond.small tack.r lambda sans("q") : ★ arrow ★$
+(la regla #smallcaps("(abs)") con $A = B = ★$ y la regla #smallcaps("(var)")).
 En cambio $Delta = lambda ("App" sans("q") sans("q"))$ no es tipable: para aplicar $sans("q")$ a
 $sans("q")$ haría falta que la variable tuviera, al mismo tiempo, un tipo función
 $A arrow B$ y el tipo de su argumento $A$, lo que ninguna regla permite. El
@@ -476,19 +475,14 @@ Para cerrar el capítulo, extendemos la semántica denotacional a los términos
 valores "bien comportados" y comprobar que todo término bien tipado denota, para
 entornos apropiados, un valor dentro de la interpretación de su tipo.
 
-El tipo base $N$ exige valores numéricos que el dominio de la ecuación (2.1) no
-tiene, así que lo extendemos con un componente plano de naturales:
-$D ≈ [D arrow D] ⊕ "Nat"_⊥$ (sobre el cual $phi$ y la aplicación $·$ quedan
-indefinidas). Con este dominio definimos
-
-$ [|N|] = "Nat"_⊥ $
+$ [|★|] = 1 $
 
 $ [|A arrow B|] = { d in D | d · e in [|B|] "para todo" e in [|A|] } $
 
-El tipo base $N$ se interpreta como los naturales del dominio, y el tipo función
-$A arrow B$ como el conjunto de valores $d$ que, aplicados a cualquier elemento de
-$[|A|]$, producen un elemento de $[|B|]$. En otras palabras, $[|A arrow B|]$ es el
-conjunto de las funciones que respetan las interpretaciones.
+El tipo unitario $★$ se interpreta como el objeto terminal $1$ (un único valor),
+y el tipo función $A arrow B$ como el conjunto de valores $d$ que, aplicados a
+cualquier elemento de $[|A|]$, producen un elemento de $[|B|]$. En otras palabras,
+$[|A arrow B|]$ es el conjunto de las funciones que respetan las interpretaciones.
 
 Un contexto $Gamma = A_1 . A_2 . . . . A_n$ se interpreta como el producto
 $[|Gamma|] = [|A_1|] times ... times [|A_n|]$: un entorno semántico asigna a cada
@@ -500,11 +494,11 @@ entorno $eta in [|Gamma|]$.
 
 Es decir, el sistema de tipos garantiza que un programa bien tipado nunca sale de
 la interpretación de su tipo, sin importar cómo se instancien sus variables. Hay
-una sutileza que conviene señalar: una *variable* de tipo función no puede
-interpretarse como un natural, porque los naturales no pertenecen a
-$[|A arrow B|]$. Resolver esto —interpretar cada variable con la expansión
-adecuada a su tipo— es parte del trabajo del capítulo @cap-reificacion, donde
-además la reificación devuelve el término de vuelta a la sintaxis.
+una sutileza que conviene señalar: una *variable* de tipo función debe denotar
+una función, y no un valor atómico. Resolver esto —interpretar cada variable con
+la expansión adecuada a su tipo— es parte del trabajo del capítulo
+@cap-reificacion, donde además la reificación devuelve el término de vuelta a la
+sintaxis.
 
 // =============================================================================
 // CAPÍTULO 3 — Reificación
