@@ -680,25 +680,21 @@ explota la semántica denotacional del capítulo @cap-definicion.
 Nuestro modelo para la normalización se basa en un dominio [@abramsky1994handbook, @scott1971continuous, @smth1982category] procedente de la
 solución D de la siguiente ecuación de dominios
 
-#math.equation(block: true, numbering: "(3.1)", $ D ≈ OO ⊕ D × D ⊕ [D → D] ⊕ "Var"_⊥ ⊕ D × D ; $)
+#math.equation(block: true, numbering: "(3.1)", $ D ≈ [D → D] ⊕ "Nat"_⊥ ⊕ D × D ; $)
 
-donde Var es un conjunto numerable (escribimos $x_i$ y asumimos $x_i != x_j$ si $i != j$, para
-$i, j in NN$), $OO = {bot, top}$ (llamado el espacio de Sierpinski), $[D arrow D]$ es el conjunto de
-funciones continuas de $D$ a $D$, y $D times D$ es el producto cartesiano de $D$
-consigo mismo. El conjunto Var se considera un pre-dominio plano. Todo elemento de $D$
-que no es $bot$ es un elemento de algún componente de la suma aplastada en el
-lado derecho de la Eq. 3.1; en tal caso escribimos $top in D$ para $top in OO$ y
+donde $[D arrow D]$ es el dominio de las funciones continuas de $D$ en $D$,
+$"Nat"_⊥$ es el dominio plano de los números naturales y $D times D$ es el producto
+cartesiano de $D$ consigo mismo. Además de las funciones y de las variables,
+necesitamos representar en el dominio las *aplicaciones neutrales* —un término que
+no es una abstracción pero tampoco se reduce, como una variable aplicada a
+argumentos—; para ello agregamos el componente de pares $D times D$. Todo elemento
+de $D$ que no es $bot$ pertenece a alguno de estos componentes; escribimos
 
 #figure(
   grid(
-    columns: (1fr, 1fr),
+    columns: (1fr, 1fr, 1fr),
     column-gutter: 1em,
     row-gutter: 1.5em,
-    [
-      $
-        "pair": D × D → D
-      $
-    ],
     [
       $
         "lam": [D → D] → D
