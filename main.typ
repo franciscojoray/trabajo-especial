@@ -644,6 +644,37 @@ _Definición_ 1 (Términos neutrales y formas normales).
 $ "Ne" in.rev k ::= sans("q") | sans("q") sans("p")^(i+1) | "App" k space v $
 $ "Nf" in.rev v ::= lambda x.v | k . $
 
+=== Qué significa normalizar
+<sec-normalizar>
+
+Normalizar un término es reducirlo a *forma normal*: aplicar reducciones hasta
+que ya no quede ningún redex. Un *redex* es una subexpresión de la forma
+$"App" (lambda t) space r$, y contraerla consiste en reemplazarla por $t space (id, r)$, el
+cuerpo $t$ con la variable $sans("q")$ sustituida por el argumento $r$; esta es la regla
+beta de la @sec-igualdad. Escribimos $t arrow.long.r t'$ cuando $t'$ se obtiene de $t$ contrayendo
+uno de sus redex.
+
+Por ejemplo, la identidad aplicada a sí misma se reduce en un paso a la
+identidad:
+
+$ "App" (lambda sans("q")) (lambda sans("q")) space arrow.long.r space sans("q") space (id, lambda sans("q")) = lambda sans("q") . $
+
+El resultado no tiene redex: según la Definición 1 es una forma normal. No todo
+término alcanza una: el término $Omega$ de la @sec-sintaxis se reduce a sí mismo y
+nunca llega a una forma normal.
+
+Normalizar sirve para decidir la igualdad. La reducción es *confluente*: si un
+término alcanza una forma normal, esta es única, con independencia del orden en
+que se contraigan los redex. Por lo tanto, dos términos son iguales en la teoría
+de la @sec-igualdad exactamente cuando se reducen a la misma forma normal; así, un
+procedimiento que produzca formas normales es un procedimiento que decide
+igualdades.
+
+El procedimiento que acabamos de describir es *sintáctico*: mueve símbolos
+aplicando una regla de reescritura. El resto del capítulo describe una manera
+*semántica* de obtener la forma normal —la normalización por evaluación— que
+explota la semántica denotacional del capítulo @cap-definicion.
+
 === Un modelo adecuado para NbE
 
 Nuestro modelo para la normalización se basa en un dominio [@abramsky1994handbook, @scott1971continuous, @smth1982category] procedente de la
