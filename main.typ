@@ -682,13 +682,22 @@ solución D de la siguiente ecuación de dominios
 
 #math.equation(block: true, numbering: "(3.1)", $ D ≈ [D → D] ⊕ "Nat"_⊥ ⊕ D × D ; $)
 
-donde $[D arrow D]$ es el dominio de las funciones continuas de $D$ en $D$,
-$"Nat"_⊥$ es el dominio plano de los números naturales y $D times D$ es el producto
-cartesiano de $D$ consigo mismo. Además de las funciones y de las variables,
-necesitamos representar en el dominio las *aplicaciones neutrales* —un término que
-no es una abstracción pero tampoco se reduce, como una variable aplicada a
-argumentos—; para ello agregamos el componente de pares $D times D$. Todo elemento
-de $D$ que no es $bot$ pertenece a alguno de estos componentes; escribimos
+En el capítulo @cap-definicion usamos el dominio $D ≈ [D arrow D]$, en el que todo
+valor es una función. Eso basta para *evaluar*: una variable denota lo que el
+entorno le asigna y una aplicación denota la aplicación de una función. Pero no
+basta para *reificar*, es decir, para volver de la semántica a la sintaxis. Para
+leer de vuelta un valor como término necesitamos distinguir en el dominio dos
+clases de objetos que $[D arrow D]$ no puede representar: las *variables* y las
+*aplicaciones neutrales*.
+
+Una variable, como $sans("q")$, es un átomo que no es una función; para reificarla
+hay que poder reconocerla como tal. Reservamos entonces un componente plano de
+naturales $"Nat"_⊥$, cuyos elementos escribimos $"Var" space i$ y representan la variable
+de índice $i$. Una aplicación neutral —un término que no es una abstracción pero
+tampoco se reduce, como una variable aplicada a argumentos— tampoco es una
+función; la representamos con un par $"App" space d space d'$, que da el componente $D times D$.
+Todo elemento de $D$ que no es $bot$ pertenece a alguno de estos componentes;
+escribimos
 
 #figure(
   grid(
