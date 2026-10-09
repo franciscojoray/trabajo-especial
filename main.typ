@@ -343,6 +343,14 @@ una variable no está en la variable misma, sino en la suposición a la que apun
 Por eso, para tipar hay que recordar el tipo de cada suposición en alcance, y ese
 registro es el *contexto*.
 
+El contexto es necesario precisamente para las variables libres. En
+$lambda sans("q")$ no hay ninguna: el único $sans("q")$ apunta al $lambda$ que lo
+liga, así que puede tiparse sin suponer nada. En cambio
+$lambda ("App" (sans("q") sans("p")) sans("q"))$ —el término $lambda x. y space x$— tiene libre a
+$sans("q") sans("p")$ (la $y$), que apunta fuera del $lambda$: para tiparlo hay que
+saber el tipo de $y$, y esa información solo puede venir de una suposición del
+contexto.
+
 Un *contexto* $Gamma$ es una lista de tipos que registra las suposiciones en
 alcance. El contexto vacío se denota $diamond.small$, y extender $Gamma$ con una
 suposición de tipo $A$ se escribe $Gamma .A$. Como las variables son índices de
@@ -379,6 +387,32 @@ abstracción tiene tipo $B$ bajo una suposición extra de tipo $A$, entonces la
 abstracción tiene tipo $A arrow B$. La regla #smallcaps("(app)") exige que la
 función tenga tipo $A arrow B$ y el argumento tipo $A$, y da tipo $B$ al
 resultado.
+
+Veamos la deducción completa del tipo de un término con una variable libre.
+Para $lambda ("App" (sans("q") sans("p")) sans("q"))$ —el término $lambda x. y space x$— bajo un
+contexto con una única suposición de tipo $A arrow B$, el árbol de derivación es
+
+#figure(
+  $ frac(
+      frac(
+        frac(, (A arrow B) .A tack.r sans("q") sans("p") : A arrow B)
+        quad
+        frac(, (A arrow B) .A tack.r sans("q") : A),
+        (A arrow B) .A tack.r "App" (sans("q") sans("p")) sans("q") : B
+      ),
+      (A arrow B) tack.r lambda ("App" (sans("q") sans("p")) sans("q")) : A arrow B
+    ) $,
+  caption: [Árbol de derivación para $lambda x. y space x$.],
+)
+
+Paso a paso. Abajo del todo hay dos hojas, ambas por la regla
+#smallcaps("(var)"): $sans("q") sans("p")$ (la $y$) recibe el tipo $A arrow B$ de la
+suposición exterior, la única del contexto, y $sans("q")$ (la $x$) recibe el tipo
+$A$ de la suposición que la liga. Con #smallcaps("(app)") se deduce que
+$"App" (sans("q") sans("p")) sans("q")$, es decir $y space x$, tiene tipo $B$. Finalmente,
+#smallcaps("(abs)") liga la $x$: como el cuerpo tiene tipo $B$ bajo la suposición
+extra $A$, la abstracción $lambda x. y space x$ tiene tipo $A arrow B$ bajo la suposición
+$y : A arrow B$.
 
 La identidad es tipable con cualquier tipo: $diamond.small tack.r lambda sans("q") : ★ arrow ★$
 (la regla #smallcaps("(abs)") con $A = B = ★$ y la regla #smallcaps("(var)")).
