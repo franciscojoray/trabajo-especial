@@ -402,8 +402,8 @@ contexto con una única suposición de tipo $A arrow B$, el árbol de derivació
   let lh = measure(lab).height
 
   let bar = box(width: w, height: lh)[
-    #place(left + horizon, dx: w + 0.4em, lab)
-    #align(horizon, line(length: 100%, stroke: 0.7pt))
+    #place(left + horizon, dx: w - 0.3em, lab)
+    #align(horizon, line(length: 90%, stroke: 0.7pt))
   ]
 
   stack(
@@ -429,7 +429,7 @@ contexto con una única suposición de tipo $A arrow B$, el árbol de derivació
       premises: stack(
         dir: ltr,
         spacing: 2em,
-        infer("", $(A arrow B) .A tack.r sans("q") sans("p") : A arrow B$),
+        infer("(var)", $(A arrow B) .A tack.r sans("q") sans("p") : A arrow B$),
         infer("(var)", $(A arrow B) .A tack.r sans("q") : A$),
       ),
     ),
@@ -531,6 +531,38 @@ propaga por cualquier contexto: si dos funciones son iguales y dos argumentos so
 iguales, sus aplicaciones son iguales; y si dos cuerpos son iguales, sus
 abstracciones también. Así el lenguaje admite un razonamiento ecuacional
 estándar.
+
+Por ejemplo, la identidad aplicada a sí misma devuelve la identidad. En
+$"App" (lambda sans("q")) (lambda sans("q"))$, el $lambda sans("q")$ de la izquierda tiene tipo
+$(★ arrow ★) arrow (★ arrow ★)$, y el de la derecha, al igual que el resultado, tipo $★ arrow ★$.
+La regla #smallcaps("(beta)") aplicada a esta redex da la igualdad
+$"App" (lambda sans("q")) (lambda sans("q")) = sans("q") space (id_diamond.small, lambda sans("q"))$, y como la
+sustitución reemplaza $sans("q")$ por $lambda sans("q")$, el lado derecho es $lambda sans("q")$.
+Reuniendo ambos pasos con #smallcaps("(trans)"):
+
+#figure(
+  align(center, infer(
+    "(trans)",
+    $diamond.small tack.r "App" (lambda sans("q")) (lambda sans("q")) = lambda sans("q") : ★ arrow ★$,
+    premises: stack(
+      dir: ltr,
+      spacing: 2em,
+      infer(
+        "(beta)",
+        $diamond.small tack.r "App" (lambda sans("q")) (lambda sans("q")) = sans("q") space (id_diamond.small, lambda sans("q")) : ★ arrow ★$,
+      ),
+      infer(
+        "(sust)",
+        $diamond.small tack.r sans("q") space (id_diamond.small, lambda sans("q")) = lambda sans("q") : ★ arrow ★$,
+      ),
+    ),
+  )),
+  caption: [La identidad aplicada a sí misma es la identidad.],
+)
+
+El paso #smallcaps("(sust)") es la resolución de la sustitución de la
+@sec-sustituciones: la sustitución $(id_diamond.small, lambda sans("q"))$ envía la variable $sans("q")$ al
+término $lambda sans("q")$.
 
 == Semántica del sistema tipado
 <sec-semantica-tipada>
