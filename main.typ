@@ -583,10 +583,10 @@ $[|A arrow B|]$ es el conjunto de las funciones que respetan las interpretacione
 
 Un contexto $Gamma = A_1 . A_2 . . . . A_n$ se interpreta como el producto
 $[|Gamma|] = [|A_1|] times ... times [|A_n|]$: un entorno semántico asigna a cada
-variable un valor del tipo correspondiente. Se demuestra por inducción sobre las
-derivaciones que la interpretación es *sólida*:
+variable un valor del tipo correspondiente. La corrección de la interpretación se
+establece por inducción sobre las derivaciones de tipado:
 
-_Solidez._ Si $Gamma tack.r t : A$, entonces $[|t|] space eta in [|A|]$ para todo
+_Lema (Solidez)._ Si $Gamma tack.r t : A$, entonces $[|t|] space eta in [|A|]$ para todo
 entorno $eta in [|Gamma|]$.
 
 Es decir, el sistema de tipos garantiza que un programa bien tipado nunca sale de
