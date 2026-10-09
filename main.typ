@@ -392,24 +392,52 @@ Veamos la deducción completa del tipo de un término con una variable libre.
 Para $lambda ("App" (sans("q") sans("p")) sans("q"))$ —el término $lambda x. y space x$— bajo un
 contexto con una única suposición de tipo $A arrow B$, el árbol de derivación es
 
+#let infer(label, conclusion, premises: none) = context {
+  let pw = if premises != none { measure(premises).width } else { 0pt }
+  let cw = measure(conclusion).width
+  let w = if pw > cw { pw } else { cw }
+
+  let lab = smallcaps(label)
+  let lw = measure(lab).width
+  let lh = measure(lab).height
+
+  let bar = box(width: w, height: lh)[
+    #place(left + horizon, dx: w + 0.4em, lab)
+    #align(horizon, line(length: 100%, stroke: 0.7pt))
+  ]
+
+  stack(
+    dir: ttb,
+    spacing: 0.5em,
+    ..(if premises != none {
+      (box(width: w, align(center, premises)),)
+    } else {
+      ()
+    }),
+    bar,
+    box(width: w, align(center, conclusion)),
+  )
+}
+
 #figure(
-  $ frac(
-      display(
-        frac(
-          display(
-            frac(, display((A arrow B) .A tack.r sans("q") sans("p") : A arrow B))
-            quad
-            frac(, display((A arrow B) .A tack.r sans("q") : A))
-          ),
-          display((A arrow B) .A tack.r "App" (sans("q") sans("p")) sans("q") : B)
-        )
+  align(center, infer(
+    "(abs)",
+    $(A arrow B) tack.r lambda ("App" (sans("q") sans("p")) sans("q")) : A arrow B$,
+    premises: infer(
+      "(app)",
+      $(A arrow B) .A tack.r "App" (sans("q") sans("p")) sans("q") : B$,
+      premises: stack(
+        dir: ltr,
+        spacing: 2em,
+        infer("", $(A arrow B) .A tack.r sans("q") sans("p") : A arrow B$),
+        infer("(var)", $(A arrow B) .A tack.r sans("q") : A$),
       ),
-      display((A arrow B) tack.r lambda ("App" (sans("q") sans("p")) sans("q")) : A arrow B)
-    ) $,
+    ),
+  )),
   caption: [Árbol de derivación para $lambda x. y space x$.],
 )
 
-Paso a paso. Abajo del todo hay dos hojas, ambas por la regla
+_Explicación del ejemplo paso a paso:_ arriba de todo hay dos hojas, ambas por la regla
 #smallcaps("(var)"): $sans("q") sans("p")$ (la $y$) recibe el tipo $A arrow B$ de la
 suposición exterior, la única del contexto, y $sans("q")$ (la $x$) recibe el tipo
 $A$ de la suposición que la liga. Con #smallcaps("(app)") se deduce que
