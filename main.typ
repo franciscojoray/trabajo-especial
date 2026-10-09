@@ -394,13 +394,17 @@ contexto con una única suposición de tipo $A arrow B$, el árbol de derivació
 
 #figure(
   $ frac(
-      frac(
-        frac(, (A arrow B) .A tack.r sans("q") sans("p") : A arrow B)
-        quad
-        frac(, (A arrow B) .A tack.r sans("q") : A),
-        (A arrow B) .A tack.r "App" (sans("q") sans("p")) sans("q") : B
+      display(
+        frac(
+          display(
+            frac(, display((A arrow B) .A tack.r sans("q") sans("p") : A arrow B))
+            quad
+            frac(, display((A arrow B) .A tack.r sans("q") : A))
+          ),
+          display((A arrow B) .A tack.r "App" (sans("q") sans("p")) sans("q") : B)
+        )
       ),
-      (A arrow B) tack.r lambda ("App" (sans("q") sans("p")) sans("q")) : A arrow B
+      display((A arrow B) tack.r lambda ("App" (sans("q") sans("p")) sans("q")) : A arrow B)
     ) $,
   caption: [Árbol de derivación para $lambda x. y space x$.],
 )
