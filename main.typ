@@ -333,6 +333,16 @@ $ "Type" in.rev A, B ::= ★ | A arrow B $
 
 es decir, un tipo es el tipo unitario $★$ o un espacio de funciones $A arrow B$.
 
+¿Qué significa tipar? Intuitivamente, asignarle un tipo a cada término
+guiándonos por su forma. Consideremos la identidad $lambda sans("q")$. Su cuerpo es
+la variable $sans("q")$, que apunta a la suposición introducida por el propio
+$lambda$. Si esa suposición tiene tipo $A$, entonces $sans("q")$ tiene tipo $A$ y,
+por lo tanto, $lambda sans("q")$ tiene tipo $A arrow A$: es una función que toma un
+valor de tipo $A$ y devuelve otro del mismo tipo. Lo importante es que el tipo de
+una variable no está en la variable misma, sino en la suposición a la que apunta.
+Por eso, para tipar hay que recordar el tipo de cada suposición en alcance, y ese
+registro es el *contexto*.
+
 Un *contexto* $Gamma$ es una lista de tipos que registra las suposiciones en
 alcance. El contexto vacío se denota $diamond.small$, y extender $Gamma$ con una
 suposición de tipo $A$ se escribe $Gamma .A$. Como las variables son índices de
