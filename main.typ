@@ -572,11 +572,11 @@ Para cerrar el capítulo, extendemos la semántica denotacional a los términos
 valores "bien comportados" y comprobar que todo término bien tipado denota, para
 entornos apropiados, un valor dentro de la interpretación de su tipo.
 
-$ [|★|] = 1 $
+$ [|★|] = {★} $
 
 $ [|A arrow B|] = { d in D | d · e in [|B|] "para todo" e in [|A|] } $
 
-El tipo unitario $★$ se interpreta como el objeto terminal $1$ (un único valor),
+El tipo unitario $★$ se interpreta como el conjunto $ {★} $, de un único elemento,
 y el tipo función $A arrow B$ como el conjunto de valores $d$ que, aplicados a
 cualquier elemento de $[|A|]$, producen un elemento de $[|B|]$. En otras palabras,
 $[|A arrow B|]$ es el conjunto de las funciones que respetan las interpretaciones.
