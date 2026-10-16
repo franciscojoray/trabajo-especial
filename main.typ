@@ -146,30 +146,35 @@ propiedades, en lugar de quedar únicamente como una explicación informal.
 = Definición del Lenguaje
 <cap-definicion>
 
-Definimos el lenguaje en etapas. Primero presentamos la *sintaxis* de los
-términos, todavía sin tipos, y el mecanismo de *sustitución* que les da su
-comportamiento operativo. Luego damos una *semántica denotacional* para ese
-cálculo sin tipos, siguiendo el enfoque de Reynolds @reynolds1998theories, que
-explica por qué la auto-aplicación es problemática y cómo un dominio resuelve la
-dificultad. Recién después introducimos el *sistema de tipos* y la *igualdad*
-entre términos tipados, y cerramos el capítulo mostrando cómo se interpretan los
-tipos en el mundo semántico.
+En la introducción dijimos que definir un lenguaje es especificar su sintaxis y
+su semántica. Este capítulo hace eso para el cálculo lambda, que llamamos
+lambda_flechita una vez que le ponemos tipos. Primero damos la *sintaxis* de los
+términos y el mecanismo de *sustitución* que los hace funcionar. Después buscamos
+un *significado* para los programas, para lo cual necesitaremos una estructura
+matemática particular —la semántica denotacional, siguiendo a Reynolds
+@reynolds1998theories—. Recién entonces introducimos el *sistema de tipos* y la
+*igualdad* entre términos tipados, y cerramos viendo cómo se interpretan los
+tipos.
 
 == Sintaxis del cálculo lambda
 <sec-sintaxis>
 
 Los términos del cálculo lambda se construyen con tres operaciones. Una
-*variable* es una referencia a una suposición ya hecha; una *abstracción*
-$lambda t$ introduce una suposición nueva y la deja disponible en el término
-$t$; una *aplicación* $"App" t space r$ usa $t$ como función y $r$ como
-argumento. No hay nada más: todo programa de este lenguaje es una combinación
-finita de estas tres piezas.
+*variable* sirve para referirnos a un valor. Una *abstracción* $lambda t$ es una
+función sin nombre, cuyo cuerpo es $t$. Y una *aplicación* $t space @ space r$ usa $t$
+como función y $r$ como argumento. No hay nada más: todo programa de este
+lenguaje se arma combinando estas tres piezas. Con tan poco se puede expresar
+mucho: como muestra Reynolds @reynolds1998theories, con el cálculo lambda se
+pueden construir los números naturales, los booleanos y sus operaciones.
 
 === Variables sin nombre
 
 En el cálculo lambda habitual las variables tienen nombre y la identidad se
-escribe $lambda x.x$: la variable $x$ está *ligada* por el $lambda$ y cada
-ocurrencia suya se refiere a ese ligador. En este trabajo usamos una
+escribe $lambda x.x$. La $x$ está *ligada*: la introduce el $lambda$ y cada
+ocurrencia suya se refiere a ese ligador. Es la misma idea que los parámetros de
+una función en un lenguaje de programación: en $lambda x.x$, la $x$ del cuerpo es
+la que la función recibe como argumento; en cambio, en $lambda x. y space x$, la $y$ no
+está ligada por nada, viene "de afuera". En este trabajo usamos una
 representación *sin nombres*, los llamados índices de de Bruijn
 @barendregt1984lambda, que es la representación que adoptamos.
 
@@ -200,11 +205,11 @@ Con esta convención la identidad se escribe $lambda sans("q")$: la única
 variable del cuerpo es $sans("q")$, es decir, la introducida por el único
 $lambda$. La función constante $lambda x. lambda y. x$ se escribe $lambda lambda (sans("q") sans("p"))$:
 aquí $sans("q") sans("p")$ mira dos ligadores hacia atrás y encuentra el primero.
-La aplicación de la identidad a sí misma se escribe $"App" (lambda sans("q")) (lambda sans("q"))$.
+La aplicación de la identidad a sí misma se escribe $(lambda sans("q")) space @ space (lambda sans("q"))$.
 
 La sintaxis abstracta de los términos queda resumida en la gramática
 
-$ "Term" in.rev t ::= sans("q") sans("p")^i | lambda t | "App" t space t $
+$ "Term" in.rev t ::= sans("q") sans("p")^i | lambda t | t space @ space t $
 
 donde $i$ recorre los números naturales: la primera alternativa son las
 variables, la segunda las abstracciones y la tercera las aplicaciones.
@@ -212,11 +217,11 @@ variables, la segunda las abstracciones y la tercera las aplicaciones.
 === Lo que sale mal sin tipos
 
 Sin tipos, nada impide escribir una función que se aplica a sí misma. Sea
-$Delta = lambda ("App" sans("q") sans("q"))$, es decir, la función $lambda x. x space x$. Es un
+$Delta = lambda (sans("q") space @ space sans("q"))$, es decir, la función $lambda x. x space x$. Es un
 término perfectamente válido desde el punto de vista sintáctico. El problema
 aparece al *usarlo*: el término
 
-$ Omega = "App" space Delta space Delta = "App" (lambda ("App" sans("q") sans("q"))) (lambda ("App" sans("q") sans("q"))) $
+$ Omega = Delta space @ space Delta = (lambda (sans("q") space @ space sans("q"))) space @ space (lambda (sans("q") space @ space sans("q"))) $
 
 se reduce a sí mismo. En efecto, aplicar $Delta$ a $Delta$ consiste en
 reemplazar cada $sans("q")$ de su cuerpo por el argumento $Delta$, y volvemos a
@@ -232,100 +237,145 @@ problema de otra manera: simplemente rechaza términos como $Delta$.
 == Sustituciones
 <sec-sustituciones>
 
-Calcular con el cálculo lambda es sustituir. La regla que define la aplicación,
-la llamada *beta-reducción*, dice que $"App" (lambda t) space r$ se reduce a $t$
-con cada ocurrencia de $sans("q")$ reemplazada por $r$; escribiremos ese
-resultado $t space (id, r)$, anticipando la notación de sustituciones explícitas
-que introducimos enseguida.
+Para calcular con el cálculo lambda hace falta *sustituir*. Pensemos qué debería
+dar la identidad aplicada a un argumento: $(lambda sans("q")) space @ space r$ debería dar $r$,
+porque la identidad devuelve su argumento. En general, aplicar una abstracción
+$lambda t$ a un argumento $r$ da el cuerpo $t$ con la variable $sans("q")$ reemplazada por $r$.
+Formalicemos esa operación.
 
-Una *sustitución* $sigma$ es una asignación de términos a variables: a la
-variable $i$-ésima le corresponde un término $sigma_i$. Aplicar $sigma$ a un
-término $t$, escrito $t space sigma$, reemplaza cada variable libre de $t$ por su
-imagen según $sigma$. La sustitución identidad $id$ deja cada variable como
-está.
+Una *sustitución* $sigma$ asigna un término a cada variable: a la variable
+$i$-ésima le corresponde un término $sigma_i$. Aplicar $sigma$ a un término $t$,
+escrito $t space sigma$, reemplaza cada variable libre de $t$ por su imagen. Las
+sustituciones se construyen con cinco operaciones: la *identidad* $id$ deja cada
+variable en su lugar; la sustitución *vacía* $chevron chevron.r$ no asigna nada; la *composición*
+$sigma space delta$ (por yuxtaposición) encadena dos sustituciones; la *extensión* $(sigma, t)$
+agrega $t$ como imagen de la variable más reciente; y $sans("p")$ es la sustitución de
+*debilitamiento* (*shifting*), que desplaza en uno los índices de las variables.
 
-La única dificultad técnica es que las variables libres deben "levantarse" cuando
-la sustitución atraviesa un ligador. Si queremos sustituir dentro de $lambda t$,
-las variables libres de $t$ se refieren a ligadores que están *afuera* del
-$lambda$; al aplicar $sigma$ bajo el ligador, esos índices deben desplazarse una
-posición para no quedar capturados por el nuevo ligador. Esta operación de
-*debilitamiento* es el $sans("p")$ que ya conocemos.
+Aplicar una sustitución a un término se resuelve con los axiomas de la
+@intro_subterm:
 
-La sustitución de una sola variable es un caso particular: $t space (id, r)$ es la
-sustitución que manda $sans("q")$ a $r$ y a cada $sans("q") sans("p")^(i+1)$ a $sans("q") sans("p")^i$.
-Por ejemplo, $"App" (lambda sans("q")) space r$ se reduce a $sans("q") space (id, r) = r$: la
+#figure(
+  grid(
+    columns: (1fr, 1fr),
+    column-gutter: 1em,
+    row-gutter: 1.5em,
+    [
+      #smallcaps("(sub-id)")
+      $ frac(, t space id = t) $
+    ],
+    [
+      #smallcaps("(sub-ass)")
+      $ frac(, t space (sigma space delta) = (t space sigma) space delta) $
+    ],
+    [
+      #smallcaps("(snd-sub)")
+      $ frac(, sans("q") space (sigma, t) = t) $
+    ],
+    [
+      #smallcaps("(abs-sub)")
+      $ frac(, (lambda t) space sigma = lambda (t space (sigma space sans("p"), sans("q")))) $
+    ],
+    [
+      #smallcaps("(app-sub)")
+      $ frac(, (t space @ space r) space sigma = (t space sigma) space @ space (r space sigma)) $
+    ],
+  ),
+  caption: [Sustitución aplicada a términos en lambda_flechita.]
+)<intro_subterm>
+
+La regla #smallcaps("(sub-id)") dice que la identidad no cambia nada, y
+#smallcaps("(sub-ass)") que aplicar la composición de dos sustituciones es lo
+mismo que aplicarlas una tras otra. Las otras tres describen cómo la sustitución
+"atraviesa" los constructores de términos. La única sutileza está en
+#smallcaps("(abs-sub)"): para sustituir dentro de una abstracción hay que hacer
+*lifting* de la sustitución —componerla con $sans("p")$—, de modo que las variables
+libres no queden capturadas por el nuevo ligador. En particular,
+#smallcaps("(snd-sub)") dice que $sans("q")$ reemplazada con el par $(sigma, t)$ da $t$.
+
+La sustitución de una sola variable es un caso particular: $t space (id, r)$ manda
+$sans("q")$ a $r$ y a cada $sans("q") sans("p")^(i+1)$ a $sans("q") sans("p")^i$. Por ejemplo,
+$(lambda sans("q")) space @ space r$ se reduce a $sans("q") space (id, r)$, y #smallcaps("(snd-sub)") da $r$: la
 identidad aplicada a $r$ da $r$.
 
-Las sustituciones se componen, y la composición es asociativa y tiene a la
-identidad como elemento neutro. Estas leyes, junto con las reglas de beta y eta
-que presentamos en la @sec-igualdad, forman la teoría ecuacional del lenguaje.
-No detallamos aquí todas las ecuaciones; las necesarias para razonar sobre los
-programas se concentran en esa sección.
+La composición de sustituciones es asociativa y tiene a la identidad como
+elemento neutro; con estas leyes, las sustituciones forman una categoría de
+contextos. No listamos aquí todas esas leyes: las reglas de la @intro_subterm
+son las que usaremos.
 
 == Semántica denotacional
 <sec-semantica-denotacional>
 
-Damos ahora un significado matemático a los términos del cálculo *sin tipos*.
-La intuición es directa: una aplicación debería denotar la aplicación de una
-función a un argumento, y una abstracción debería denotar una función. La
-dificultad es que, sin tipos, esta intuición choca con una paradoja.
+Queremos darle un significado matemático a cada término. La idea natural es que
+una abstracción $lambda t$ denote una *función*, y que una aplicación
+$t space @ space r$ denote la *aplicación* de la función denotada por $t$ al valor
+denotado por $r$. Pero esta idea choca con una dificultad.
 
-Supongamos que existe un conjunto $S$ de valores tal que toda función de $S$ en
-$S$ es a su vez un valor, es decir, tal que $S arrow S subset.eq S$. Entonces toda
-función $f in S arrow S$ tiene un punto fijo: tomamos una función $p in S arrow S$
-cualquiera que cumpla $p space x = f space (x space x)$ y observamos que
-$p space p = f space (p space p)$. Pero si $S$ tiene al menos dos elementos, hay
-funciones $S arrow S$ sin punto fijo (por ejemplo, la que intercambia dos
-elementos). Contradicción @reynolds1998theories.
+Supongamos que hubiera un conjunto $S$ de valores con la propiedad de que toda
+función de $S$ en $S$ es también un valor, es decir, tal que $S arrow S subset.eq S$. A
+partir de una función $f in S arrow S$ cualquiera, definamos $p in S arrow S$ por
+$p space x = f space (x space x)$. Como $p in S arrow S subset.eq S$, el propio $p$ es un valor y
+podemos aplicárselo a sí misma: $p space p = f space (p space p)$. Es decir, $p space p$ es un
+valor que $f$ deja fijo: si las funciones son valores, *toda* función de $S$ en
+$S$ tiene un punto fijo. Pero eso es falso apenas $S$ tiene dos elementos: la
+función que intercambia dos valores no deja ninguno fijo. Contradicción
+@reynolds1998theories.
 
-El cálculo lambda puede *escribir* esta paradoja. Si la función $f$ está denotada
-por un término $e$, el término $lambda ("App" e space ("App" sans("q") sans("q")))$ denota la
-función $p$, y por lo tanto
+El cálculo lambda puede *escribir* este argumento. Si la función $f$ está denotada
+por el término $e$, el término $lambda (e space @ space (sans("q") space @ space sans("q")))$ denota la
+función $p$, y por lo tanto el término
 
-$ "App" (lambda ("App" e space ("App" sans("q") sans("q")))) (lambda ("App" e space ("App" sans("q") sans("q")))) $
+$ (lambda (e space @ space (sans("q") space @ space sans("q")))) space @ space (lambda (e space @ space (sans("q") space @ space sans("q")))) $
 
-denota un punto fijo de $f$. En particular $Omega$ (de la @sec-sintaxis) es el
-caso en que $f$ es la identidad: el cálculo produce, para cada función, un punto
-fijo.
+denota $p space p$, un punto fijo de $f$. En particular, $Omega$ (de la @sec-sintaxis) es
+el caso en que $f$ es la identidad: la auto-aplicación fabrica, para cada
+función, un punto fijo.
 
-La solución de Scott @scott1971continuous consiste en no pedir $S arrow S subset.eq S$ sobre
-conjuntos arbitrarios, sino restringirse a funciones *continuas* sobre un
-*dominio*. Se demuestra que existe un dominio no trivial $D$ que es isomorfo al
-dominio de sus funciones continuas en sí mismo; es decir, un dominio que resuelve
-la ecuación
+La salida, debida a Scott @scott1971continuous, es no pedir $S arrow S subset.eq S$ sobre
+conjuntos arbitrarios, sino restringirnos a funciones con buenas propiedades
+—las *continuas*— definidas sobre una estructura llamada *dominio*. La idea de
+continuidad (que no definimos en detalle) es que la función respeta cómo se van
+aproximando las computaciones: los valores de un dominio llevan un orden de
+información, y una función continua respeta ese orden y los límites de cadenas.
+Con esta restricción se puede construir un dominio no trivial $D$ que es isomorfo
+al dominio de sus funciones continuas en sí mismo; es decir, un dominio que
+resuelve la ecuación
 
 #math.equation(block: true, numbering: "(2.1)", $ D ≈ [D arrow D] ; $)
 
-donde $[D arrow D]$ es el dominio de las funciones continuas de $D$ en $D$. Como
-toda función continua sobre un dominio tiene un punto fijo, la paradoja
-desaparece: ya no se puede fabricar una función sin punto fijo.
+donde $[D arrow D]$ es el dominio de las funciones continuas de $D$ en $D$. La
+clave es que toda función continua sobre un dominio *sí* tiene un punto fijo, de
+modo que la paradoja desaparece.
 
 El isomorfismo (2.1) nos da dos funciones mutuamente inversas que iremos usando:
-una inyección $"lam" : [D arrow D] arrow D$ que convierte una función continua en un
-valor, y una proyección $phi : D arrow [D arrow D]$ que hace el camino de vuelta. Con
-ellas definimos la aplicación en $D$ como $d · e = (phi space d) space e$.
+una inyección $"lam" : [D arrow D] arrow D$ que convierte una función continua en un valor, y
+una proyección $phi : D arrow [D arrow D]$ que hace el camino de vuelta. Con ellas
+definimos la aplicación en $D$: si $d$ es la imagen de la función $f = phi space d$,
+entonces $d · e = f space e$.
 
-El significado de un término depende de los valores de sus variables libres. Un
-*entorno* $eta$ asigna a cada variable un valor de $D$. Interpretamos entonces
-cada término como una función que, dado un entorno, produce un valor:
+Pasemos a interpretar los términos. El significado de un término depende de los
+valores de sus variables libres, así que fijamos un *entorno*, una función
+$eta : "Var" arrow D$ que asigna a cada variable un valor de $D$. Interpretamos cada
+término como una función que, dado un entorno, produce un valor:
 
 $ [| sans("q") sans("p")^i |] space eta = eta (i) $
 
-$ [| "App" t space r |] space eta = phi ([|t|] space eta) ([|r|] space eta) $
+$ [| t space @ space r |] space eta = phi ([|t|] space eta) ([|r|] space eta) $
 
 $ [| lambda t |] space eta = "lam" (a ↦ [|t|] space (eta, a)) . $
 
-La primera ecuación dice que una variable denota lo que el entorno le asigna.
-La segunda interpreta una aplicación: se le aplica $phi$ al valor denotado por
-$t$ para obtener una función, y esa función se aplica al valor denotado por $r$.
-La tercera interpreta una abstracción
-como la función que a cada $a$ le asigna el valor de $t$ en el entorno extendido
-con $a$ en la primera posición.
+Desglosemos estas ecuaciones. La primera es trivial: una variable denota lo que
+el entorno le asigna. En la segunda, $[|t|] space eta$ y $[|r|] space eta$ son elementos de
+$D$ (el codominio de la interpretación); $phi ([|t|] space eta)$ es la función continua que
+ese valor representa, y aplicársela a $[|r|] space eta$ da el valor de la aplicación. En la
+tercera, $a ↦ [|t|] space (eta, a)$ es una función de $D$ en $D$ que a cada $a in D$ le
+asigna el valor de $t$ en el entorno extendido con $a$ en la primera posición, y
+$"lam"$ la inyecta en $D$.
 
 == Sistema de tipos
 <sec-tipos>
 
-El sistema de tipos del lenguaje, que llamamos lambda_flechita, rechaza términos
+El sistema de tipos de lambda_flechita rechaza términos
 como $Delta$ asignando un *tipo* a cada término bien formado. La gramática
 abstracta de los tipos es
 
@@ -334,19 +384,21 @@ $ "Type" in.rev A, B ::= ★ | A arrow B $
 es decir, un tipo es el tipo unitario $★$ o un espacio de funciones $A arrow B$.
 
 ¿Qué significa tipar? Intuitivamente, asignarle un tipo a cada término
-guiándonos por su forma. Consideremos la identidad $lambda sans("q")$. Su cuerpo es
-la variable $sans("q")$, que apunta a la suposición introducida por el propio
-$lambda$. Si esa suposición tiene tipo $A$, entonces $sans("q")$ tiene tipo $A$ y,
-por lo tanto, $lambda sans("q")$ tiene tipo $A arrow A$: es una función que toma un
-valor de tipo $A$ y devuelve otro del mismo tipo. Lo importante es que el tipo de
-una variable no está en la variable misma, sino en la suposición a la que apunta.
-Por eso, para tipar hay que recordar el tipo de cada suposición en alcance, y ese
+guiándonos por su forma. Pensemos en la identidad $lambda sans("q")$. Su tipo, si lo
+tiene, tendrá que ser una flecha $A arrow B$, porque una abstracción denota una
+función. Pero, ¿cuáles son $A$ y $B$? El cuerpo es la variable $sans("q")$, que apunta
+a la suposición que el propio $lambda$ introduce: el tipo del argumento $A$ queda
+determinado por esa suposición, y podría ser cualquiera. Como el cuerpo *es* esa
+variable, el tipo del resultado $B$ coincide con $A$; es decir, $lambda sans("q")$ tiene
+tipo $A arrow A$ para cualquier tipo $A$. Lo importante es que el tipo de una
+variable no está en la variable misma, sino en la suposición a la que apunta. Por
+eso, para tipar hay que recordar el tipo de cada suposición en alcance, y ese
 registro es el *contexto*.
 
 El contexto es necesario precisamente para las variables libres. En
 $lambda sans("q")$ no hay ninguna: el único $sans("q")$ apunta al $lambda$ que lo
 liga, así que puede tiparse sin suponer nada. En cambio
-$lambda ("App" (sans("q") sans("p")) sans("q"))$ —el término $lambda x. y space x$— tiene libre a
+$lambda ((sans("q") sans("p")) space @ space sans("q"))$ —el término $lambda x. y space x$— tiene libre a
 $sans("q") sans("p")$ (la $y$), que apunta fuera del $lambda$: para tiparlo hay que
 saber el tipo de $y$, y esa información solo puede venir de una suposición del
 contexto.
@@ -358,11 +410,11 @@ de Bruijn, no hace falta nombrarlas: la suposición más reciente es la primera 
 contexto, y $sans("q") sans("p")^i$ se refiere al tipo en la posición $i$.
 
 El juicio $Gamma tack.r t : A$ dice que $t$ tiene tipo $A$ en el contexto $Gamma$.
-Sus reglas son tres y se muestran en la @intro_terms.
+Sus reglas son cuatro y se muestran en la @intro_terms.
 
 #figure(
   grid(
-    columns: (1fr, 1fr, 1fr),
+    columns: (1fr, 1fr),
     column-gutter: 1em,
     row-gutter: 1.5em,
     [
@@ -370,26 +422,32 @@ Sus reglas son tres y se muestran en la @intro_terms.
       $ frac(, Gamma .A tack.r sans("q") : A) $
     ],
     [
+      #smallcaps("(p)")
+      $ frac(Gamma tack.r sans("q") sans("p")^i : A, Gamma .B tack.r sans("q") sans("p")^(i+1) : A) $
+    ],
+    [
       #smallcaps("(abs)")
       $ frac(Gamma .A tack.r t : B, Gamma tack.r lambda t : A arrow B) $
     ],
     [
       #smallcaps("(app)")
-      $ frac(Gamma tack.r t : A arrow B quad Gamma tack.r r : A, Gamma tack.r "App" t space r : B) $
+      $ frac(Gamma tack.r t : A arrow B quad Gamma tack.r r : A, Gamma tack.r t space @ space r : B) $
     ],
   ),
   caption: [Reglas de tipado de lambda_flechita.]
 )<intro_terms>
 
-La regla #smallcaps("(var)") tipa la variable más reciente con el tipo de la
-última suposición. La regla #smallcaps("(abs)") dice que si el cuerpo de una
-abstracción tiene tipo $B$ bajo una suposición extra de tipo $A$, entonces la
-abstracción tiene tipo $A arrow B$. La regla #smallcaps("(app)") exige que la
-función tenga tipo $A arrow B$ y el argumento tipo $A$, y da tipo $B$ al
+La regla #smallcaps("(var)") tipa la variable más reciente $sans("q")$ con el tipo de la
+última suposición, y la regla #smallcaps("(p)") extiende esto a las demás
+variables: si $sans("q") sans("p")^i$ tiene tipo $A$, al agregar una suposición su índice se
+corre a $sans("q") sans("p")^(i+1)$ con el mismo tipo. La regla #smallcaps("(abs)") dice que si
+el cuerpo de una abstracción tiene tipo $B$ bajo una suposición extra de tipo
+$A$, entonces la abstracción tiene tipo $A arrow B$. La regla #smallcaps("(app)") exige
+que la función tenga tipo $A arrow B$ y el argumento tipo $A$, y da tipo $B$ al
 resultado.
 
 Veamos la deducción completa del tipo de un término con una variable libre.
-Para $lambda ("App" (sans("q") sans("p")) sans("q"))$ —el término $lambda x. y space x$— bajo un
+Para $lambda ((sans("q") sans("p")) space @ space sans("q"))$ —el término $lambda x. y space x$— bajo un
 contexto con una única suposición de tipo $A arrow B$, el árbol de derivación es
 
 #let infer(label, conclusion, premises: none) = context {
@@ -422,14 +480,18 @@ contexto con una única suposición de tipo $A arrow B$, el árbol de derivació
 #figure(
   align(center, infer(
     "(abs)",
-    $(A arrow B) tack.r lambda ("App" (sans("q") sans("p")) sans("q")) : A arrow B$,
+    $(A arrow B) tack.r lambda ((sans("q") sans("p")) space @ space sans("q")) : A arrow B$,
     premises: infer(
       "(app)",
-      $(A arrow B) .A tack.r "App" (sans("q") sans("p")) sans("q") : B$,
+      $(A arrow B) .A tack.r (sans("q") sans("p")) space @ space sans("q") : B$,
       premises: stack(
         dir: ltr,
         spacing: 2em,
-        infer("(var)", $(A arrow B) .A tack.r sans("q") sans("p") : A arrow B$),
+        infer(
+          "(p)",
+          $(A arrow B) .A tack.r sans("q") sans("p") : A arrow B$,
+          premises: infer("(var)", $(A arrow B) tack.r sans("q") : A arrow B$),
+        ),
         infer("(var)", $(A arrow B) .A tack.r sans("q") : A$),
       ),
     ),
@@ -437,18 +499,18 @@ contexto con una única suposición de tipo $A arrow B$, el árbol de derivació
   caption: [Árbol de derivación para $lambda x. y space x$.],
 )
 
-_Explicación del ejemplo paso a paso:_ arriba de todo hay dos hojas, ambas por la regla
-#smallcaps("(var)"): $sans("q") sans("p")$ (la $y$) recibe el tipo $A arrow B$ de la
-suposición exterior, la única del contexto, y $sans("q")$ (la $x$) recibe el tipo
-$A$ de la suposición que la liga. Con #smallcaps("(app)") se deduce que
-$"App" (sans("q") sans("p")) sans("q")$, es decir $y space x$, tiene tipo $B$. Finalmente,
-#smallcaps("(abs)") liga la $x$: como el cuerpo tiene tipo $B$ bajo la suposición
-extra $A$, la abstracción $lambda x. y space x$ tiene tipo $A arrow B$ bajo la suposición
-$y : A arrow B$.
+_Explicación del ejemplo paso a paso:_ la variable $sans("q")$ recibe el tipo
+$A arrow B$ por #smallcaps("(var)") (es la única suposición del contexto), y
+#smallcaps("(p)") la debilita a $sans("q") sans("p")$, la $y$. La $x$, en cambio, es la variable
+más reciente y recibe el tipo $A$ por #smallcaps("(var)"). Con #smallcaps("(app)")
+se deduce que $(sans("q") sans("p")) space @ space sans("q")$, es decir $y space x$, tiene tipo $B$.
+Finalmente, #smallcaps("(abs)") liga la $x$: como el cuerpo tiene tipo $B$ bajo la
+suposición extra $A$, la abstracción $lambda x. y space x$ tiene tipo $A arrow B$ bajo la
+suposición $y : A arrow B$.
 
 La identidad es tipable con cualquier tipo: $diamond.small tack.r lambda sans("q") : ★ arrow ★$
 (la regla #smallcaps("(abs)") con $A = B = ★$ y la regla #smallcaps("(var)")).
-En cambio $Delta = lambda ("App" sans("q") sans("q"))$ no es tipable: para aplicar $sans("q")$ a
+En cambio $Delta = lambda (sans("q") space @ space sans("q"))$ no es tipable: para aplicar $sans("q")$ a
 $sans("q")$ haría falta que la variable tuviera, al mismo tiempo, un tipo función
 $A arrow B$ y el tipo de su argumento $A$, lo que ninguna regla permite. El
 sistema de tipos cumple así su cometido: los términos "problemáticos" quedan
@@ -470,14 +532,14 @@ codifica el comportamiento de las funciones. Las dos reglas principales son la
       #smallcaps("(beta)")
       $ frac(
           Gamma tack.r lambda t : A arrow B quad Gamma tack.r r : A,
-          Gamma tack.r "App" (lambda t) space r = t space (id_Gamma, r) : B
+          Gamma tack.r (lambda t) space @ space r = t space (id_Gamma, r) : B
         ) $
     ],
     [
       #smallcaps("(eta)")
       $ frac(
           Gamma tack.r t : A arrow B,
-          Gamma tack.r lambda ("App" (t sans("p")) sans("q")) = t : A arrow B
+          Gamma tack.r lambda ((t sans("p")) space @ space sans("q")) = t : A arrow B
         ) $
     ],
   ),
@@ -514,7 +576,7 @@ equivalencia, y las dos últimas la hacen compatible con los constructores.
     ],
     [
       #smallcaps("(cong-app)")
-      $ frac(Gamma tack.r t = t' : A arrow B quad Gamma tack.r r = r' : A, Gamma tack.r "App" t space r = "App" t' space r' : B) $
+      $ frac(Gamma tack.r t = t' : A arrow B quad Gamma tack.r r = r' : A, Gamma tack.r t space @ space r = t' space @ space r' : B) $
     ],
     [
       #smallcaps("(cong-abs)")
@@ -533,26 +595,26 @@ abstracciones también. Así el lenguaje admite un razonamiento ecuacional
 estándar.
 
 Por ejemplo, la identidad aplicada a sí misma devuelve la identidad. En
-$"App" (lambda sans("q")) (lambda sans("q"))$, el $lambda sans("q")$ de la izquierda tiene tipo
+$(lambda sans("q")) space @ space (lambda sans("q"))$, el $lambda sans("q")$ de la izquierda tiene tipo
 $(★ arrow ★) arrow (★ arrow ★)$, y el de la derecha, al igual que el resultado, tipo $★ arrow ★$.
 La regla #smallcaps("(beta)") aplicada a esta redex da la igualdad
-$"App" (lambda sans("q")) (lambda sans("q")) = sans("q") space (id_diamond.small, lambda sans("q"))$, y como la
-sustitución reemplaza $sans("q")$ por $lambda sans("q")$, el lado derecho es $lambda sans("q")$.
+$(lambda sans("q")) space @ space (lambda sans("q")) = sans("q") space (id_diamond.small, lambda sans("q"))$, y
+#smallcaps("(snd-sub)") de la @sec-sustituciones da $sans("q") space (id_diamond.small, lambda sans("q")) = lambda sans("q")$.
 Reuniendo ambos pasos con #smallcaps("(trans)"):
 
 #figure(
   align(center, infer(
     "(trans)",
-    $diamond.small tack.r "App" (lambda sans("q")) (lambda sans("q")) = lambda sans("q") : ★ arrow ★$,
+    $diamond.small tack.r (lambda sans("q")) space @ space (lambda sans("q")) = lambda sans("q") : ★ arrow ★$,
     premises: stack(
       dir: ltr,
       spacing: 2em,
       infer(
         "(beta)",
-        $diamond.small tack.r "App" (lambda sans("q")) (lambda sans("q")) = sans("q") space (id_diamond.small, lambda sans("q")) : ★ arrow ★$,
+        $diamond.small tack.r (lambda sans("q")) space @ space (lambda sans("q")) = sans("q") space (id_diamond.small, lambda sans("q")) : ★ arrow ★$,
       ),
       infer(
-        "(sust)",
+        "(snd-sub)",
         $diamond.small tack.r sans("q") space (id_diamond.small, lambda sans("q")) = lambda sans("q") : ★ arrow ★$,
       ),
     ),
@@ -560,7 +622,7 @@ Reuniendo ambos pasos con #smallcaps("(trans)"):
   caption: [La identidad aplicada a sí misma es la identidad.],
 )
 
-El paso #smallcaps("(sust)") es la resolución de la sustitución de la
+El paso #smallcaps("(snd-sub)") es la resolución de la sustitución de la
 @sec-sustituciones: la sustitución $(id_diamond.small, lambda sans("q"))$ envía la variable $sans("q")$ al
 término $lambda sans("q")$.
 
@@ -633,7 +695,7 @@ es $λ x_1 .λ x_2 . . . . λ x_n .(. . . ((y space t_1) space t_2) . . .) space
 donde $m ⩾ 0, n ⩾ 0$, y cada $t_i$ tiene también esa forma; es fácil ver que la siguiente
 gramática captura esos términos.
 
-$ "Ne" in.rev k ::= x | "App" k space v $
+$ "Ne" in.rev k ::= x | k space @ space v $
 $ "Nf" in.rev v ::= lambda x.v | k . $
 
 Después de reemplazar variables indexadas por variables nombradas en esa gramática
@@ -641,7 +703,7 @@ llegamos a la definición de formas normales y términos neutrales.
 
 _Definición_ 1 (Términos neutrales y formas normales).
 
-$ "Ne" in.rev k ::= sans("q") | sans("q") sans("p")^(i+1) | "App" k space v $
+$ "Ne" in.rev k ::= sans("q") | sans("q") sans("p")^(i+1) | k space @ space v $
 $ "Nf" in.rev v ::= lambda x.v | k . $
 
 === Qué significa normalizar
@@ -649,7 +711,7 @@ $ "Nf" in.rev v ::= lambda x.v | k . $
 
 Normalizar un término es reducirlo a *forma normal*: aplicar reducciones hasta
 que ya no quede ningún redex. Un *redex* es una subexpresión de la forma
-$"App" (lambda t) space r$, y contraerla consiste en reemplazarla por $t space (id, r)$, el
+$(lambda t) space @ space r$, y contraerla consiste en reemplazarla por $t space (id, r)$, el
 cuerpo $t$ con la variable $sans("q")$ sustituida por el argumento $r$; esta es la regla
 beta de la @sec-igualdad. Escribimos $t arrow.long.r t'$ cuando $t'$ se obtiene de $t$ contrayendo
 uno de sus redex.
@@ -657,7 +719,7 @@ uno de sus redex.
 Por ejemplo, la identidad aplicada a sí misma se reduce en un paso a la
 identidad:
 
-$ "App" (lambda sans("q")) (lambda sans("q")) space arrow.long.r space sans("q") space (id, lambda sans("q")) = lambda sans("q") . $
+$ (lambda sans("q")) space @ space (lambda sans("q")) space arrow.long.r space sans("q") space (id, lambda sans("q")) = lambda sans("q") . $
 
 El resultado no tiene redex: según la Definición 1 es una forma normal. No todo
 término alcanza una: el término $Omega$ de la @sec-sintaxis se reduce a sí mismo y
@@ -735,7 +797,7 @@ obtener un valor que pueda ser reificado.
 
 _Definición_ 2 (Función de reificación).
 
-$ R_j ("App" d d') = "App" (R_j d) (R_j d') $
+$ R_j ("App" d d') = (R_j d) space @ space (R_j d') $
 $ R_j ("lam" f) = λ(R_(j+1) (f("Var" j))) $
 $ R_j ("Var" i) = cases(
   sans("q") & "si" i <= j+1,
