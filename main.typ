@@ -225,26 +225,6 @@ $ "Term" in.rev t ::= sans("q") sans("p")^i | lambda t | t space @ space t $
 donde $i$ recorre los números naturales: la primera alternativa son las
 variables, la segunda las abstracciones y la tercera las aplicaciones.
 
-=== Lo que sale mal sin tipos
-
-Sin tipos, nada impide escribir una función que se aplica a sí misma. Sea
-$Delta = lambda (sans("q") space @ space sans("q"))$, es decir, la función $lambda x. x space x$. Es un
-término perfectamente válido desde el punto de vista sintáctico. El problema
-aparece al *usarlo*: el término
-
-$ Omega = Delta space @ space Delta = (lambda (sans("q") space @ space sans("q"))) space @ space (lambda (sans("q") space @ space sans("q"))) $
-
-se reduce a sí mismo. En efecto, aplicar $Delta$ a $Delta$ consiste en
-reemplazar cada $sans("q")$ de su cuerpo por el argumento $Delta$, y volvemos a
-obtener exactamente $Omega$. El cálculo no termina: $Omega$ es un programa que
-gira para siempre sin producir ningún resultado.
-
-No se trata de un detalle menor. Veremos en la @sec-semantica-denotacional que
-la auto-aplicación es la fuente de una paradoja análoga a la de Russell, y que
-darle un significado matemático a un lenguaje que la permite obliga a salir de
-la teoría de conjuntos ingenua. El sistema de tipos de la @sec-tipos resuelve el
-problema de otra manera: simplemente rechaza términos como $Delta$.
-
 == Sustituciones
 <sec-sustituciones>
 
@@ -340,7 +320,7 @@ función $p$, y por lo tanto el término
 
 $ (lambda (e space @ space (sans("q") space @ space sans("q")))) space @ space (lambda (e space @ space (sans("q") space @ space sans("q")))) $
 
-denota $p space p$, un punto fijo de $f$. En particular, $Omega$ (de la @sec-sintaxis) es
+denota $p space p$, un punto fijo de $f$. En particular, $Omega$ (de la @sec-lo-que-sale-mal) es
 el caso en que $f$ es la identidad: la auto-aplicación fabrica, para cada
 función, un punto fijo.
 
@@ -384,6 +364,27 @@ ese valor representa, y aplicársela a $[|r|] space eta$ da el valor de la aplic
 tercera, $a ↦ [|t|] space (eta, a)$ es una función de $D$ en $D$ que a cada $a in D$ le
 asigna el valor de $t$ en el entorno extendido con $a$ en la primera posición, y
 $"lam"$ la inyecta en $D$.
+
+== Lo que sale mal sin tipos
+<sec-lo-que-sale-mal>
+
+Sin tipos, nada impide escribir una función que se aplica a sí misma. Sea
+$Delta = lambda (sans("q") space @ space sans("q"))$, es decir, la función $lambda x. x space x$. Es un
+término perfectamente válido desde el punto de vista sintáctico. El problema
+aparece al *usarlo*: el término
+
+$ Omega = Delta space @ space Delta = (lambda (sans("q") space @ space sans("q"))) space @ space (lambda (sans("q") space @ space sans("q"))) $
+
+se reduce a sí mismo. En efecto, aplicar $Delta$ a $Delta$ consiste en
+reemplazar cada $sans("q")$ de su cuerpo por el argumento $Delta$, y volvemos a
+obtener exactamente $Omega$. El cálculo no termina: $Omega$ es un programa que
+gira para siempre sin producir ningún resultado.
+
+No se trata de un detalle menor. Vimos en la @sec-semantica-denotacional que la
+auto-aplicación es la fuente de una paradoja análoga a la de Russell, y que darle
+un significado matemático a un lenguaje que la permite obliga a salir de la
+teoría de conjuntos ingenua. El sistema de tipos de la @sec-tipos resuelve el
+problema de otra manera: simplemente rechaza términos como $Delta$.
 
 == Sistema de tipos
 <sec-tipos>
@@ -780,7 +781,7 @@ identidad:
 $ (lambda sans("q")) space @ space (lambda sans("q")) space arrow.long.r space sans("q") space (id, lambda sans("q")) = lambda sans("q") . $
 
 El resultado no tiene redex: según la Definición 1 es una forma normal. No todo
-término alcanza una: el término $Omega$ de la @sec-sintaxis se reduce a sí mismo y
+término alcanza una: el término $Omega$ de la @sec-lo-que-sale-mal se reduce a sí mismo y
 nunca llega a una forma normal.
 
 Normalizar sirve para decidir la igualdad. La reducción es *confluente*: si un
