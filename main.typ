@@ -169,14 +169,25 @@ lambda se pueden construir los números naturales, los booleanos y sus operacion
 
 === Variables sin nombre
 
-En el cálculo lambda habitual las variables tienen nombre y la identidad se
-escribe $lambda x.x$. La $x$ está *ligada*: la introduce el $lambda$ y cada
-ocurrencia suya se refiere a ese ligador. Es la misma idea que los parámetros de
-una función en un lenguaje de programación: en $lambda x.x$, la $x$ del cuerpo es
-la que la función recibe como argumento; en cambio, en $lambda x. y space x$, la $y$ no
-está ligada por nada, viene "de afuera". En este trabajo usamos una
-representación *sin nombres*, los llamados índices de de Bruijn
-@barendregt1984lambda, que es la representación que adoptamos.
+En el cálculo lambda habitual las variables tienen nombre. Consideremos la
+identidad $lambda x. x$: la $x$ está *ligada* —la introduce el $lambda$— y cada
+ocurrencia suya en el cuerpo se refiere a ese ligador. Es la misma idea que los
+parámetros de una función en un lenguaje de programación. Para evaluar
+$(lambda x. x) space 0$ hay que ejecutar el cuerpo $x$ recordando que $x$ está ligada al
+valor $0$; ese "recuerdo" —la asignación de valores a las variables— es lo que
+llamaremos *contexto* (o entorno). El resultado es $0$.
+
+El problema aparece cuando una variable libre se cruza con un ligador. Evaluemos
+$(lambda x. lambda y. x) space y$: la $y$ del argumento viene de afuera, es libre, mientras que
+la $x$ del cuerpo está ligada por el $lambda x$ más externo. Al reemplazar $x$ por $y$ en el
+cuerpo $lambda y. x$ obtenemos $lambda y. y$, que ya no es lo que queríamos: la $y$ libre
+quedó *capturada* por el $lambda y$ interior. Lo correcto es renombrar la ligadura y
+obtener, por ejemplo, $lambda z. y$. Evitar esta captura en cada sustitución es
+engorroso.
+
+Una representación *sin nombres* resuelve el problema de raíz: si las variables
+son índices, no hay nombres que capturar. En este trabajo usamos esa
+representación, los llamados índices de de Bruijn @barendregt1984lambda.
 
 La idea es que una variable no se identifica por un nombre sino por su
 *posición*: un número que indica cuántos ligadores hay que cruzar para llegar al
