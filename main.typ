@@ -160,12 +160,12 @@ tipos.
 <sec-sintaxis>
 
 Los términos del cálculo lambda se construyen con tres operaciones. Una
-*variable* sirve para referirnos a un valor. Una *abstracción* $lambda t$ es una
-función sin nombre, cuyo cuerpo es $t$. Y una *aplicación* $t space @ space r$ usa $t$
-como función y $r$ como argumento. No hay nada más: todo programa de este
-lenguaje se arma combinando estas tres piezas. Con tan poco se puede expresar
-mucho: como muestra Reynolds @reynolds1998theories, con el cálculo lambda se
-pueden construir los números naturales, los booleanos y sus operaciones.
+*variable* sirve para referirnos a un valor. Una *abstracción* $lambda x. t$ es
+una función sin nombre, con parámetro $x$ y cuerpo $t$. Y una *aplicación*
+$t space @ space r$ usa $t$ como función y $r$ como argumento. No hay nada más: todo
+programa de este lenguaje se arma combinando estas tres piezas. Con tan poco se
+puede expresar mucho: como muestra Reynolds @reynolds1998theories, con el cálculo
+lambda se pueden construir los números naturales, los booleanos y sus operaciones.
 
 === Variables sin nombre
 
