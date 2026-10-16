@@ -301,7 +301,9 @@ identidad aplicada a $r$ da $r$.
 La composición de sustituciones es asociativa y tiene a la identidad como
 elemento neutro; con estas leyes, las sustituciones forman una categoría de
 contextos. No listamos aquí todas esas leyes: las reglas de la @intro_subterm
-son las que usaremos.
+son las que usaremos. En la @sec-tipos les damos tipos a estas sustituciones;
+en particular, el debilitamiento $sans("p")$ es lo que permite tipar las variables de índice
+mayor.
 
 == Semántica denotacional
 <sec-semantica-denotacional>
@@ -409,8 +411,46 @@ suposición de tipo $A$ se escribe $Gamma .A$. Como las variables son índices d
 de Bruijn, no hace falta nombrarlas: la suposición más reciente es la primera del
 contexto, y $sans("q") sans("p")^i$ se refiere al tipo en la posición $i$.
 
-El juicio $Gamma tack.r t : A$ dice que $t$ tiene tipo $A$ en el contexto $Gamma$.
-Sus reglas son cuatro y se muestran en la @intro_terms.
+El juicio $Gamma tack.r t : A$ dice que $t$ tiene tipo $A$ en el contexto $Gamma$, y el
+juicio $Gamma tack.r sigma : Delta$ dice que $sigma$ es una *sustitución* que asigna a cada
+variable de $Delta$ un término bien tipado bajo $Gamma$. Las sustituciones se forman
+con las reglas de la @intro_subs:
+
+#figure(
+  grid(
+    columns: (1fr, 1fr),
+    column-gutter: 1em,
+    row-gutter: 1.5em,
+    [
+      #smallcaps("(id-subs)")
+      $ frac(, Gamma tack.r id_Gamma : Gamma) $
+    ],
+    [
+      #smallcaps("(empty-subs)")
+      $ frac(, Gamma tack.r chevron chevron.r : diamond.small) $
+    ],
+    [
+      #smallcaps("(comp-subs)")
+      $ frac(Sigma tack.r sigma : Gamma quad Delta tack.r delta : Sigma, Delta tack.r sigma space delta : Gamma) $
+    ],
+    [
+      #smallcaps("(ext-subs)")
+      $ frac(Delta tack.r sigma : Gamma quad Delta tack.r t : A, Delta tack.r (sigma, t) : Gamma .A) $
+    ],
+    [
+      #smallcaps("(fst-subs)")
+      $ frac(, Gamma .A tack.r sans("p") : Gamma) $
+    ],
+  ),
+  caption: [Reglas de formación de sustituciones en lambda_flechita.]
+)<intro_subs>
+
+La regla #smallcaps("(id-subs)") da la identidad; #smallcaps("(empty-subs)"), la
+sustitución vacía; #smallcaps("(comp-subs)"), la composición; #smallcaps("(ext-subs)"),
+la extensión; y #smallcaps("(fst-subs)"), la sustitución de debilitamiento $sans("p")$,
+que desplaza en uno los índices de las variables de $Gamma$.
+
+Las reglas de tipado de términos son cuatro y se muestran en la @intro_terms:
 
 #figure(
   grid(
@@ -422,8 +462,8 @@ Sus reglas son cuatro y se muestran en la @intro_terms.
       $ frac(, Gamma .A tack.r sans("q") : A) $
     ],
     [
-      #smallcaps("(p)")
-      $ frac(Gamma tack.r sans("q") sans("p")^i : A, Gamma .B tack.r sans("q") sans("p")^(i+1) : A) $
+      #smallcaps("(subs-term)")
+      $ frac(Gamma tack.r sigma : Delta quad Delta tack.r t : A, Gamma tack.r t space sigma : A) $
     ],
     [
       #smallcaps("(abs)")
@@ -438,13 +478,15 @@ Sus reglas son cuatro y se muestran en la @intro_terms.
 )<intro_terms>
 
 La regla #smallcaps("(var)") tipa la variable más reciente $sans("q")$ con el tipo de la
-última suposición, y la regla #smallcaps("(p)") extiende esto a las demás
-variables: si $sans("q") sans("p")^i$ tiene tipo $A$, al agregar una suposición su índice se
-corre a $sans("q") sans("p")^(i+1)$ con el mismo tipo. La regla #smallcaps("(abs)") dice que si
-el cuerpo de una abstracción tiene tipo $B$ bajo una suposición extra de tipo
-$A$, entonces la abstracción tiene tipo $A arrow B$. La regla #smallcaps("(app)") exige
-que la función tenga tipo $A arrow B$ y el argumento tipo $A$, y da tipo $B$ al
-resultado.
+última suposición, y #smallcaps("(subs-term)") permite aplicar una sustitución a un
+término bien tipado. Las otras dos son las habituales: #smallcaps("(abs)") forma
+una abstracción y #smallcaps("(app)") una aplicación.
+
+Observemos que las variables de índice mayor no necesitan una regla propia. Por
+#smallcaps("(fst-subs)"), $sans("p")$ es una sustitución $Gamma .A tack.r sans("p") : Gamma$, y
+#smallcaps("(subs-term)") permite aplicársela a un término. En general, la variable
+$sans("q") sans("p")^i$ es $sans("q")$ con la sustitución $sans("p")^i$ (la composición $i$ veces de $sans("p")$
+consigo misma) aplicada.
 
 Veamos la deducción completa del tipo de un término con una variable libre.
 Para $lambda ((sans("q") sans("p")) space @ space sans("q"))$ —el término $lambda x. y space x$— bajo un
@@ -488,9 +530,14 @@ contexto con una única suposición de tipo $A arrow B$, el árbol de derivació
         dir: ltr,
         spacing: 2em,
         infer(
-          "(p)",
+          "(subs-term)",
           $(A arrow B) .A tack.r sans("q") sans("p") : A arrow B$,
-          premises: infer("(var)", $(A arrow B) tack.r sans("q") : A arrow B$),
+          premises: stack(
+            dir: ltr,
+            spacing: 1.5em,
+            infer("", $(A arrow B) .A tack.r sans("p") : A arrow B$),
+            infer("(var)", $(A arrow B) tack.r sans("q") : A arrow B$),
+          ),
         ),
         infer("(var)", $(A arrow B) .A tack.r sans("q") : A$),
       ),
@@ -500,13 +547,13 @@ contexto con una única suposición de tipo $A arrow B$, el árbol de derivació
 )
 
 _Explicación del ejemplo paso a paso:_ la variable $sans("q")$ recibe el tipo
-$A arrow B$ por #smallcaps("(var)") (es la única suposición del contexto), y
-#smallcaps("(p)") la debilita a $sans("q") sans("p")$, la $y$. La $x$, en cambio, es la variable
-más reciente y recibe el tipo $A$ por #smallcaps("(var)"). Con #smallcaps("(app)")
-se deduce que $(sans("q") sans("p")) space @ space sans("q")$, es decir $y space x$, tiene tipo $B$.
-Finalmente, #smallcaps("(abs)") liga la $x$: como el cuerpo tiene tipo $B$ bajo la
-suposición extra $A$, la abstracción $lambda x. y space x$ tiene tipo $A arrow B$ bajo la
-suposición $y : A arrow B$.
+$A arrow B$ por #smallcaps("(var)") (es la única suposición del contexto), y se la
+debilita a $sans("q") sans("p")$, la $y$, aplicándole la sustitución $sans("p")$ con
+#smallcaps("(subs-term)") (y #smallcaps("(fst-subs)")). La $x$, en cambio, es la variable más
+reciente y recibe el tipo $A$ por #smallcaps("(var)"). Con #smallcaps("(app)") se deduce
+que $(sans("q") sans("p")) space @ space sans("q")$, es decir $y space x$, tiene tipo $B$. Finalmente,
+#smallcaps("(abs)") liga la $x$: como el cuerpo tiene tipo $B$ bajo la suposición extra
+$A$, la abstracción $lambda x. y space x$ tiene tipo $A arrow B$ bajo la suposición $y : A arrow B$.
 
 La identidad es tipable con cualquier tipo: $diamond.small tack.r lambda sans("q") : ★ arrow ★$
 (la regla #smallcaps("(abs)") con $A = B = ★$ y la regla #smallcaps("(var)")).
