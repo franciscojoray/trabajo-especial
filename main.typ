@@ -724,6 +724,65 @@ sintaxis.
 = Reificación
 <cap-reificacion>
 
+En este capítulo buscamos un método para *normalizar* términos: llevar cada
+término a una forma canónica a partir de la cual podamos decidir, por ejemplo, si
+dos términos son iguales. La idea es intuitiva: si dos términos denotan lo mismo,
+deberían poder reducirse a la misma forma "simplificada". Primero vemos la manera
+clásica —reducir paso a paso con la regla beta— y luego, en el resto del capítulo,
+una manera sorprendente: usar la *semántica*, es decir, la evaluación en un modelo,
+para obtener la forma normal; esta técnica se conoce como normalización por
+evaluación.
+
+== Qué significa normalizar
+<sec-normalizar>
+
+Normalizar un término es reducirlo a *forma normal*: aplicar reducciones hasta
+que ya no quede ningún redex. Un *redex* es una subexpresión de la forma
+$(lambda t) space @ space r$, y contraerla consiste en reemplazarla por $t space (id, r)$, el
+cuerpo $t$ con la variable $sans("q")$ sustituida por el argumento $r$; esta es la regla
+beta de la @sec-igualdad. Escribimos $t arrow.long.r t'$ cuando $t'$ se obtiene de $t$ contrayendo
+uno de sus redex.
+
+Por ejemplo, la identidad aplicada a sí misma se reduce en un paso a la
+identidad:
+
+$ (lambda sans("q")) space @ space (lambda sans("q")) space arrow.long.r space sans("q") space (id, lambda sans("q")) = lambda sans("q") . $
+
+El resultado no tiene redex: es una forma normal. No todo
+término alcanza una: el término $Omega$ de la @sec-lo-que-sale-mal se reduce a sí mismo y
+nunca llega a una forma normal.
+
+Normalizar sirve para decidir la igualdad. La reducción es *confluente*: si un
+término alcanza una forma normal, esta es única, con independencia del orden en
+que se contraigan los redex. Por lo tanto, dos términos son iguales en la teoría
+de la @sec-igualdad exactamente cuando se reducen a la misma forma normal; así, un
+procedimiento que produzca formas normales es un procedimiento que decide
+igualdades.
+
+El procedimiento que acabamos de describir es *sintáctico*: mueve símbolos
+aplicando una regla de reescritura. El resto del capítulo describe una manera
+*semántica* de obtener la forma normal —la normalización por evaluación— que
+explota la semántica denotacional del capítulo @cap-definicion.
+
+== Propiedades del sistema formal
+
+Caracterizamos el conjunto de términos en forma normal. La forma de
+las formas normales, en el contexto del cálculo lambda no tipado con variables nombradas,
+es $λ x_1 .λ x_2 . . . . λ x_n .(. . . ((y space t_1) space t_2) . . .) space t_m$,
+donde $m ⩾ 0, n ⩾ 0$, y cada $t_i$ tiene también esa forma; es fácil ver que la siguiente
+gramática captura esos términos.
+
+$ "Ne" in.rev k ::= x | k space @ space v $
+$ "Nf" in.rev v ::= lambda x.v | k . $
+
+Después de reemplazar variables indexadas por variables nombradas en esa gramática
+llegamos a la definición de formas normales y términos neutrales.
+
+_Definición_ 1 (Términos neutrales y formas normales).
+
+$ "Ne" in.rev k ::= sans("q") | sans("q") sans("p")^(i+1) | k space @ space v $
+$ "Nf" in.rev v ::= lambda x.v | k . $
+
 == Normalización por Evaluación: Usando Semántica para Normalizar
 
 Berger y Schwichtenberg @berger1991inverse notaron que se puede establecer un cierto modelo
@@ -746,57 +805,7 @@ necesitamos saber que $R([|t|]) ≡ R([|t'|])$.
   caption: [Normalización por Evaluación],
 )<nbe>
 
-=== Propiedades del sistema formal
-
-Caracterizamos el conjunto de términos en forma normal. La forma de
-las formas normales, en el contexto del cálculo lambda no tipado con variables nombradas,
-es $λ x_1 .λ x_2 . . . . λ x_n .(. . . ((y space t_1) space t_2) . . .) space t_m$,
-donde $m ⩾ 0, n ⩾ 0$, y cada $t_i$ tiene también esa forma; es fácil ver que la siguiente
-gramática captura esos términos.
-
-$ "Ne" in.rev k ::= x | k space @ space v $
-$ "Nf" in.rev v ::= lambda x.v | k . $
-
-Después de reemplazar variables indexadas por variables nombradas en esa gramática
-llegamos a la definición de formas normales y términos neutrales.
-
-_Definición_ 1 (Términos neutrales y formas normales).
-
-$ "Ne" in.rev k ::= sans("q") | sans("q") sans("p")^(i+1) | k space @ space v $
-$ "Nf" in.rev v ::= lambda x.v | k . $
-
-=== Qué significa normalizar
-<sec-normalizar>
-
-Normalizar un término es reducirlo a *forma normal*: aplicar reducciones hasta
-que ya no quede ningún redex. Un *redex* es una subexpresión de la forma
-$(lambda t) space @ space r$, y contraerla consiste en reemplazarla por $t space (id, r)$, el
-cuerpo $t$ con la variable $sans("q")$ sustituida por el argumento $r$; esta es la regla
-beta de la @sec-igualdad. Escribimos $t arrow.long.r t'$ cuando $t'$ se obtiene de $t$ contrayendo
-uno de sus redex.
-
-Por ejemplo, la identidad aplicada a sí misma se reduce en un paso a la
-identidad:
-
-$ (lambda sans("q")) space @ space (lambda sans("q")) space arrow.long.r space sans("q") space (id, lambda sans("q")) = lambda sans("q") . $
-
-El resultado no tiene redex: según la Definición 1 es una forma normal. No todo
-término alcanza una: el término $Omega$ de la @sec-lo-que-sale-mal se reduce a sí mismo y
-nunca llega a una forma normal.
-
-Normalizar sirve para decidir la igualdad. La reducción es *confluente*: si un
-término alcanza una forma normal, esta es única, con independencia del orden en
-que se contraigan los redex. Por lo tanto, dos términos son iguales en la teoría
-de la @sec-igualdad exactamente cuando se reducen a la misma forma normal; así, un
-procedimiento que produzca formas normales es un procedimiento que decide
-igualdades.
-
-El procedimiento que acabamos de describir es *sintáctico*: mueve símbolos
-aplicando una regla de reescritura. El resto del capítulo describe una manera
-*semántica* de obtener la forma normal —la normalización por evaluación— que
-explota la semántica denotacional del capítulo @cap-definicion.
-
-=== Un modelo adecuado para NbE
+== Un modelo adecuado para NbE
 
 Nuestro modelo para la normalización se basa en un dominio [@abramsky1994handbook, @scott1971continuous, @smth1982category] procedente de la
 solución D de la siguiente ecuación de dominios
@@ -843,7 +852,7 @@ escribimos
   )
 )
 
-==== Reificación
+=== Reificación
 Definimos una función parcial de lectura inversa R que, dado un elemento
 de D, devuelve un término del cálculo. Esta función es similar a la función de lectura
 inversa introducida por Grégoire y Leroy @gregoire2002compiled para definir un procedimiento de normalización
