@@ -748,9 +748,27 @@ identidad:
 
 $ (lambda sans("q")) space @ space (lambda sans("q")) space arrow.long.r space sans("q") space (id, lambda sans("q")) = lambda sans("q") . $
 
-El resultado no tiene redex: es una forma normal. No todo
-término alcanza una: el término $Omega$ de la @sec-lo-que-sale-mal se reduce a sí mismo y
-nunca llega a una forma normal.
+El resultado no tiene redex: es una forma normal. Precisemos su forma: en el
+cálculo lambda con variables nombradas, una forma normal es
+
+$ λ x_1 .λ x_2 . . . . λ x_n .(. . . ((y space t_1) space t_2) . . .) space t_m , $
+
+donde $m ⩾ 0, n ⩾ 0$, y cada $t_i$ tiene también esa forma; es fácil ver que la siguiente
+gramática captura esos términos.
+
+$ "Ne" in.rev k ::= x | k space @ space v $
+$ "Nf" in.rev v ::= lambda x.v | k . $
+
+Reemplazando variables nombradas por variables indexadas llegamos a la definición
+de formas normales y términos neutrales.
+
+_Definición_ 1 (Términos neutrales y formas normales).
+
+$ "Ne" in.rev k ::= sans("q") | sans("q") sans("p")^(i+1) | k space @ space v $
+$ "Nf" in.rev v ::= lambda x.v | k . $
+
+No todo término alcanza una forma normal: el término $Omega$ de la @sec-lo-que-sale-mal se
+reduce a sí mismo y nunca llega a una.
 
 Normalizar sirve para decidir la igualdad. La reducción es *confluente*: si un
 término alcanza una forma normal, esta es única, con independencia del orden en
@@ -763,25 +781,6 @@ El procedimiento que acabamos de describir es *sintáctico*: mueve símbolos
 aplicando una regla de reescritura. El resto del capítulo describe una manera
 *semántica* de obtener la forma normal —la normalización por evaluación— que
 explota la semántica denotacional del capítulo @cap-definicion.
-
-== Propiedades del sistema formal
-
-Caracterizamos el conjunto de términos en forma normal. La forma de
-las formas normales, en el contexto del cálculo lambda no tipado con variables nombradas,
-es $λ x_1 .λ x_2 . . . . λ x_n .(. . . ((y space t_1) space t_2) . . .) space t_m$,
-donde $m ⩾ 0, n ⩾ 0$, y cada $t_i$ tiene también esa forma; es fácil ver que la siguiente
-gramática captura esos términos.
-
-$ "Ne" in.rev k ::= x | k space @ space v $
-$ "Nf" in.rev v ::= lambda x.v | k . $
-
-Después de reemplazar variables indexadas por variables nombradas en esa gramática
-llegamos a la definición de formas normales y términos neutrales.
-
-_Definición_ 1 (Términos neutrales y formas normales).
-
-$ "Ne" in.rev k ::= sans("q") | sans("q") sans("p")^(i+1) | k space @ space v $
-$ "Nf" in.rev v ::= lambda x.v | k . $
 
 == Normalización por Evaluación: Usando Semántica para Normalizar
 
