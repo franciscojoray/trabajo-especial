@@ -984,368 +984,399 @@ Esto descompone `X'` en sus conjunciones booleanas a través de las vistas `andP
 <sec-rocq-definiciones>
 
 A continuación presentamos las definiciones centrales del lenguaje en Rocq,
-siguiendo la estructura de la @cap-definicion.
+siguiendo la estructura de la @cap-definicion y la @cap-reificacion. El código
+está organizado en módulos: `Lang.v` (sintaxis y sustitución), `Types.v` (tipos
+y tipado), `Domains.v` (dominio recursivo), `SemOps.v` y `Semantics.v`
+(semántica), `Levels.v` y `Reif.v` (reificación), `NbE.v` (formas normales y
+normalización) y los módulos de propiedades (`Weakening.v`, `Validity.v`,
+`TypedEq.v`, `TypedNbE.v`, `LogicalRel.v`, `Correctness.v`,
+`Completeness.v`).
 
-=== Entornos
+=== Entornos y variables
 
-```
-  Definition Env := nat.
-```
+Los índices de de Bruijn se representan como naturales planos; el índice $0$ es
+la variable más fresca (la más interna). A diferencia de la versión anterior,
+los términos ya no están indexados por el tamaño del entorno: un mismo término
+puede discutirse en un entorno de cualquier tamaño.
 
-=== Variables
-
-```
-  Inductive Var : Env -> Type :=
-  | ZVAR : forall E, Var (S E)
-  | SVAR : forall E, Var E -> Var (S E)
-  .
-```
-
-=== Valores y Expresiones
-
-```
-  (** *Definition 36: Syntax *)
-  Inductive Term E :=
-  | VAR : Var E     -> Term E
-  | FUN : Term E.+1 -> Term E
-  | APP : Term E    -> Term E -> Term E
-  .
+```rocq
+Definition Env := nat.
+Definition Var := nat.
 ```
 
-=== Tipos y Contextos
+=== Sintaxis
 
-```
-  (** *Definition 3.5: Types and contexts *)
-  Inductive LType :=
-  | FunTy  : LType -> LType -> LType
-  | UnitTy : LType
-  .
-
-  Definition LCtx (E : Env) := t LType E.
+```rocq
+Inductive Term :=
+| VAR : Var -> Term
+| FUN : Term -> Term
+| APP : Term -> Term -> Term
+.
 ```
 
-  La función `lookupType` recupera del contexto el tipo asociado a una variable
-  de de Bruijn. Su recursión sigue simultáneamente la estructura de la variable
-  y la del vector que representa al contexto.
+Con las notaciones
 
-  ```rocq
-  Definition lookupType :=
-  fix nth_fix {E} (Γ : t LType E) (v : Var E) {struct Γ} : LType :=
-  match v in Var E' return t LType E' -> LType with
-  | ZVAR _ => fun Γ' =>
-    caseS (fun _ _ => LType) (fun θ n t => θ) Γ'
-  | SVAR _ v' => fun Γ' =>
-    (caseS (fun E' _ => Var E' -> LType)
-      (fun _ n Γ'' w => nth_fix Γ'' w) Γ') v'
-  end Γ.
-  ```
+```rocq
+Notation "'λ' e" := (FUN e) (at level 1, no associativity).
+Infix "@"        := APP (at level 201, left associativity).
+```
 
-  === Juicios de tipado
+=== Tipos y contextos
 
-  El tipo inductivo `TypeJudge` codifica las tres reglas de tipado del lenguaje.
-  Una prueba de `Γ t⊢ t ⦂ θ` es, por construcción, una derivación de que el
-  término `t` tiene tipo `θ` bajo el contexto `Γ`.
+```rocq
+Inductive LType :=
+| FunTy  : LType -> LType -> LType
+| UnitTy : LType
+.
 
-  ```rocq
-  Reserved Notation "Γ 't⊢' t ⦂ θ"
-    (at level 201, no associativity).
+Definition LCtx := list LType.
+```
 
-  Inductive TypeJudge :
-    forall (E : Env), LCtx E -> Term E -> LType -> Type :=
-  | VarRule : forall (E : Env) (Γ : LCtx E) (v : Var E),
-    (Γ t⊢ VAR v ⦂ lookupType Γ v)
-  | FunRule : forall (E : Env) (Γ : LCtx E)
-    (e : Term E.+1) (θ' θ : LType),
-    ((θ' × Γ) t⊢ e ⦂ θ) ->
-    (Γ t⊢ λ e ⦂ (θ' ⇥ θ))
-  | AppRule : forall (E : Env) (Γ : LCtx E)
-    (t t' : Term E) (θ θ' : LType),
-    (Γ t⊢ t ⦂ (θ' ⇥ θ)) ->
-    (Γ t⊢ t' ⦂ θ') ->
-    (Γ t⊢ t @ t' ⦂ θ)
-  where "Γ t⊢ t ⦂ θ" := (TypeJudge Γ t θ).
-  ```
+Los contextos son listas planas (no vectores indexados por el tamaño). Las
+notaciones son `★` para el tipo unitario, `θ₁ ⇥ θ₂` para el espacio de
+funciones, `[]` para el contexto vacío y `θ × Γ` para extender un contexto.
 
-  === Dominio semántico
+```rocq
+Infix "⇥" := (FunTy) (at level 0, right associativity).
+Notation "★" := (UnitTy) (at level 0, no associativity).
+Notation "'[]'" := (nil LType) (at level 1, no associativity).
+Notation "θ × Γ" := (cons θ Γ) (at level 0, right associativity).
+```
 
-  La biblioteca construye una solución `DInf` para una ecuación recursiva de
-  dominios. El predominio de valores `VInf` separa los naturales, las funciones
-  continuas y los pares. Los morfismos `Roll` y `Unroll` exhiben el isomorfismo
-  entre `DInf` y `VInf`.
+La función `lookupType` recupera el tipo de una variable de de Bruijn en un
+contexto. Como `Var` es un natural, la función es total: los índices fuera de
+rango caen en `UnitTy`.
 
-  ```rocq
-  Parameter DInf : cpoType.
+```rocq
+Fixpoint lookupType (Γ : LCtx) (v : Var) {struct Γ} : LType :=
+  match Γ with
+  | nil => UnitTy
+  | cons θ Γ' => match v with
+                 | O => θ
+                 | S v' => lookupType Γ' v'
+                 end
+  end.
 
-  Definition VInf :=
-    discrete_cpoType nat +
-    (DInf -=> DInf _BOT) +
-    (DInf * DInf).
+Notation "Γ ∋ v" := (lookupType Γ v) (at level 1, no associativity).
+```
 
-  Parameter Roll   : VInf =-> DInf.
-  Parameter Unroll : DInf =-> VInf.
+=== Juicios de tipado
 
-  Parameter RU_id : Roll << Unroll =-= Id.
-  Parameter UR_id : Unroll << Roll =-= Id.
-  ```
+El tipo inductivo `TypeJudge` codifica las tres reglas de tipado del lenguaje.
+Una prueba de `Γ ⊢ t ⦂ θ` es, por construcción, una derivación de que el término
+`t` tiene tipo `θ` bajo el contexto `Γ`.
 
-  Las inyecciones que se utilizan en la semántica y en la reificación son:
+```rocq
+Reserved Notation "Γ ⊢ t ⦂ θ" (at level 1, no associativity).
 
-  ```rocq
-  Definition inNat : nat_cpoType =-> VInf :=
-    in1 (A := nat_cpoType + (DInf -=> DInf _BOT))
-        (B := DInf * DInf) <<
-    in1 (A := nat_cpoType) (B := DInf -=> DInf _BOT).
+Inductive TypeJudge : LCtx -> Term -> LType -> Type :=
+| VarRule  : forall (Γ : LCtx) (v : Var),
+             v < length Γ ->
+             (Γ ⊢ (VAR v) ⦂ (Γ ∋ v))
+| FunRule  : forall (Γ : LCtx) (e : Term) (θ' θ : LType),
+             ((θ' × Γ) ⊢ e ⦂ θ) ->
+             (Γ ⊢ λ e ⦂ (θ' ⇥ θ))
+| AppRule  : forall (Γ : LCtx) (t t' : Term) (θ θ' : LType),
+             (Γ ⊢ t ⦂ (θ' ⇥ θ)) -> (Γ ⊢ t' ⦂ θ') ->
+             (Γ ⊢ (t @ t') ⦂ θ)
+where "Γ ⊢ t ⦂ θ" := (TypeJudge Γ t θ).
+```
 
-  Definition inFun : (DInf -=> DInf _BOT) =-> VInf :=
-    in1 (A := nat_cpoType + (DInf -=> DInf _BOT))
-        (B := DInf * DInf) <<
-    in2 (A := nat_cpoType) (B := DInf -=> DInf _BOT).
+La regla `VarRule` exige que la variable esté en alcance (`v < length Γ`), y su
+tipo se obtiene con `Γ ∋ v`.
 
-  Definition inPair : (DInf * DInf) =-> VInf :=
-    in2 (A := nat_cpoType + (DInf -=> DInf _BOT))
-        (B := DInf * DInf).
-  ```
+=== Dominio semántico
 
-  === Semántica de entornos, variables y términos
+La biblioteca construye una solución `DInf` para una ecuación recursiva de
+dominios. El predominio de valores `VInf` separa los naturales, las funciones
+continuas y los pares; los morfismos `Roll` y `Unroll` exhiben el isomorfismo
+entre `DInf` y `VInf`. El dominio es *call-by-name*: el componente funcional es
+`DInf _BOT -=> DInf _BOT` (argumento levantado), de modo que una función puede
+recibir un argumento divergente.
 
-  Un entorno semántico es un producto iterado de valores. Por ello, la semántica
-  de la variable más reciente es la segunda proyección y la de una variable
-  sucesora descarta primero el último componente del entorno.
+```rocq
+Parameter DInf : cpoType.
 
-  ```rocq
-  Fixpoint SemEnv E : cpoType :=
-    match E with
-    | O   => One
-    | S E => SemEnv E * VInf
-    end.
+Definition VInf :=
+  discrete_cpoType nat +
+  (DInf _BOT -=> DInf _BOT) +
+  (DInf * DInf).
 
-  Fixpoint SemVar E (v : Var E) : SemEnv E =-> VInf :=
-    match v with
-    | ZVAR _   => pi2
-    | SVAR _ v => SemVar v << pi1
-    end.
-  ```
+Parameter Roll   : VInf =-> DInf.
+Parameter Unroll : DInf =-> VInf.
 
-  Para interpretar una abstracción, `F` transforma la semántica de su cuerpo en
-  una función del dominio. Para la aplicación, `AppOp` extrae el componente
-  funcional del primer operando y lo aplica al segundo; `kleisli` propaga la
-  posible indefinición.
+Parameter RU_id : Roll << Unroll =-= Id.
+Parameter UR_id : Unroll << Roll =-= Id.
+```
 
-  ```rocq
-  Definition F (E : Env) (SemE : SemEnv E.+1 =-> VInf _BOT) :
-      SemEnv E -=> (DInf -=> DInf _BOT) :=
-    exp_fun
+Las inyecciones que se utilizan en la semántica y en la reificación son:
+
+```rocq
+Definition inNat : nat_cpoType =-> VInf :=
+  in1 (A := nat_cpoType + (DInf _BOT -=> DInf _BOT))
+      (B := DInf * DInf) <<
+  in1 (A := nat_cpoType) (B := DInf _BOT -=> DInf _BOT).
+
+Definition inFun : (DInf _BOT -=> DInf _BOT) =-> VInf :=
+  in1 (A := nat_cpoType + (DInf _BOT -=> DInf _BOT))
+      (B := DInf * DInf) <<
+  in2 (A := nat_cpoType) (B := DInf _BOT -=> DInf _BOT).
+
+Definition inPair : (DInf * DInf) =-> VInf :=
+  in2 (A := nat_cpoType + (DInf _BOT -=> DInf _BOT))
+      (B := DInf * DInf).
+```
+
+=== Semántica de entornos, variables y términos
+
+Un entorno semántico es un producto iterado de *valores levantados* `VInf _BOT`:
+una ranura puede estar ligada a un argumento divergente (call-by-name).
+
+```rocq
+Fixpoint SemEnv E : cpoType :=
+  match E with
+  | O => One
+  | S E => SemEnv E * VInf _BOT
+  end.
+
+Fixpoint SemVar (n : Var) {E : Env} {struct n} : SemEnv E =-> VInf _BOT :=
+  match n return SemEnv E =-> VInf _BOT with
+  | O => match E as E0 return SemEnv E0 =-> VInf _BOT with
+         | O => const _ PBot
+         | S E' => pi2
+         end
+  | S n' => match E as E0 return SemEnv E0 =-> VInf _BOT with
+            | O => const _ PBot
+            | S E' => SemVar n' << pi1
+            end
+  end.
+```
+
+La abstracción semántica `F` evalúa el cuerpo con el argumento (levantado) en la
+ranura fresca:
+
+```rocq
+Definition F (E : Env) (SemE : SemEnv E.+1 =-> VInf _BOT) :
+  SemEnv E -=> (DInf _BOT -=> DInf _BOT)
+  := exp_fun
       (kleisli (eta << Roll) <<
-       SemE << (Id >< Unroll)).
+        SemE << (Id >< kleisli (eta << Unroll))).
+```
 
-  Definition VInfToFun :
-      VInf -=> (DInf -=> DInf _BOT) _BOT :=
-    [| [| const _ PBot, eta |] , const _ PBot |].
+La aplicación semántica distingue tres casos. Una función `inFun f` aplicada a un
+argumento `a` da `f a` (β); un neutral (variable o aplicación neutral) aplicado a
+`a` da el neutral `App k a`, codificado como `inPair (Roll k, Roll a)`. Los tres
+casos se reúnen en `AppC` y `AppV`:
 
-  Definition AppOp {E : Env}
-      (d1 : SemEnv E =-> VInf _BOT)
-      (d2 : SemEnv E =-> VInf _BOT) :
-      SemEnv E =-> VInf _BOT :=
-    kleisli ((KLEISLI (eta << Unroll)) << (KLEISLIL ev) <<
-      <| VInfToFun << pi1 (A := VInf) (B := VInf),
-         Roll << pi2 (A := VInf) (B := VInf) |>) <<
-    uncurry (Smash VInf VInf) << <| d1, d2 |>.
+```rocq
+Definition NeuC : VInf =-> (VInf _BOT -=> VInf _BOT) :=
+  exp_fun ((KLEISLIL (eta << inPair << (Roll >< Roll) << SWAP) << SWAP)
+             : cpoCatType (VInf * VInf _BOT) (VInf _BOT)).
 
-  Reserved Notation "⟦ t '⟧'" (at level 1, no associativity).
+Definition FunC : (DInf _BOT -=> DInf _BOT) =-> (VInf _BOT -=> VInf _BOT) :=
+  exp_fun ((kleisli (eta << Unroll) << ev << (Id >< kleisli (eta << Roll)))
+             : cpoCatType ((DInf _BOT -=> DInf _BOT) * VInf _BOT) (VInf _BOT)).
 
-  Fixpoint SemT E (t : Term E) : SemEnv E =-> VInf _BOT :=
-    match t return SemEnv E =-> VInf _BOT with
-    | VAR m     => eta << SemVar m
-    | FUN e     => eta << inFun << (F ⟦ e ⟧)
-    | APP t1 t2 => AppOp ⟦ t1 ⟧ ⟦ t2 ⟧
-    end
-  where "⟦ t ⟧" := (SemT t).
-  ```
+Definition AppC : VInf =-> (VInf _BOT -=> VInf _BOT) :=
+  [| [| NeuC << inNat , FunC |] , NeuC << inPair |].
 
-  === Reificación
+Definition AppV : VInf * VInf _BOT =-> VInf _BOT := uncurry AppC.
 
-  Para cada entorno no vacío, `DVar` convierte un natural en una variable de de
-  Bruijn. Los índices fuera del entorno se saturan en la variable más reciente;
-  en los demás casos se construye la cantidad correspondiente de sucesores.
-  `FVar` compone esta operación con el constructor de términos.
+Definition AppOp {E : Env}
+    (d1 : SemEnv E =-> VInf _BOT)
+    (d2 : SemEnv E =-> VInf _BOT) : SemEnv E =-> VInf _BOT :=
+  KLEISLIL AppV << <| d1 , d2 |>.
+```
 
-  ```rocq
-  Canonical Structure expr (E : Env) :=
-    Eval hnf in discrete_cpoType (Term E).
+La interpretación de los términos:
 
-  Definition DVAR (E : Env) :
-      discrete_cpoType (Var E) =-> discrete_cpoType (Term E).
-    apply SimpleUOp.
-    apply VAR.
-  Defined.
+```rocq
+Reserved Notation "⟦ t '⟧'" (at level 1, no associativity).
 
-  Definition DFUN (E : Env) :
-      discrete_cpoType (Term E.+1) =-> discrete_cpoType (Term E).
-    apply SimpleUOp.
-    apply FUN.
-  Defined.
+Fixpoint SemT {E : Env} (t : Term) {struct t} : SemEnv E =-> VInf _BOT :=
+  match t return SemEnv E =-> VInf _BOT with
+  | VAR n     => SemVar n
+  | FUN e     => eta << inFun << (F (@SemT E.+1 e))
+  | APP t1 t2 => AppOp (SemT t1) (SemT t2)
+  end
+where "⟦ t ⟧" := (SemT t).
+```
 
-  Fixpoint DVar (E : Env) : nat_cpoType -> Var (S E) :=
-    match E with
-    | O => fun n => ZVAR O
-    | S E' => fun n =>
-        match Coq.Init.Nat.leb (S E') n with
-        | true  => ZVAR (S E')
-        | false => SVAR (DVar E' n)
-        end
-    end.
+=== Reificación
 
-  Definition DVARc (E : Env) :
-      nat_cpoType =-> discrete_cpoType (Var (S E)).
-    apply SimpleUOp.
-    apply DVar.
-  Defined.
+La reificación es un único punto fijo sobre la familia de todos los niveles: el
+nivel $E$ reifica los valores con $E$ variables en alcance. En particular, el
+nivel $0$ es un miembro genuino, de modo que los términos cerrados también se
+leen de vuelta.
 
-  Definition FVar (E : Env) :
-      nat_cpoType =-> discrete_cpoType (Term (S E)) :=
-    DVAR E.+1 << DVARc E.
-  ```
+```rocq
+Canonical Structure expr := Eval hnf in discrete_cpoType Term.
 
-  Al reificar una función se introduce una variable fresca. `RecUpe` debilita
-  el término reificado antes de construir la abstracción, preservando así los
-  índices de las variables que ya estaban en alcance.
+Definition DVAR : nat_cpoType =-> discrete_cpoType Term.
+  apply SimpleUOp. apply VAR.
+Defined.
 
-  ```rocq
-  Fixpoint RecV (E : Env) (v : Var E) : Var E.+1 :=
-    match v in Var E' return Var E'.+1 with
-    | ZVAR E'   => ZVAR (E'.+1)
-    | SVAR E' x => @SVAR (E'.+1) (@RecV E' x)
-    end.
+Definition DFUN : discrete_cpoType Term =-> discrete_cpoType Term.
+  apply SimpleUOp. apply FUN.
+Defined.
 
-  Definition RecUpe (E : Env) : Term E -> Term E.+1 :=
-    renT (@RecV E).
+Definition DAPP :
+  (discrete_cpoType Term * discrete_cpoType Term) =-> discrete_cpoType Term.
+  apply (SimpleBOp (A := Term) (B := Term) (C := discrete_cpoType Term)).
+  apply APP.
+Defined.
+```
 
-  Definition RecUp (E : Env) :
-      discrete_cpoType (Term E) =->
-      discrete_cpoType (Term E.+1).
-    apply SimpleUOp.
-    apply RecUpe.
-  Defined.
-  ```
+La rama de variables: en el nivel $E$, la marca `inNat n` se lee como la variable
+de índice `E - n.+1` (la sustracción truncada colapsa en el índice $0$ las marcas
+fuera de nivel):
 
-  Los casos funcional y de aplicación implementan, respectivamente, las dos
-  primeras ecuaciones de la Definición 2 de la @cap-reificacion. En `FunCase`,
-  la función semántica se aplica a la variable fresca `inNat E`; en `AppCase`,
-  ambos componentes se reifican y luego se combinan mediante `APP`.
+```rocq
+Definition FVar (E : Env) : nat_cpoType =-> discrete_cpoType Term :=
+  SimpleUOp (fun n => VAR (E - n.+1)).
+```
 
-  ```rocq
-  Definition FunCase (E : Env) :
-      (VInf -=> discrete_cpoType (Term E.+1) _BOT) *
-      (DInf -=> DInf _BOT) =->
-      discrete_cpoType (Term E.+1) _BOT.
-    refine (ccomp _ _).
-    Focus 2.
-    refine (PROD_fun _ _).
-    apply pi1.
-    apply (kleisli (eta << Unroll) << ev <<
-      <| pi2 (A := VInf -=> discrete_cpoType (Term E.+1) _BOT),
-         const _ (Roll (inNat E)) |>).
-    refine (ccomp _ _).
-    apply (kleisli (eta << DFUN E.+1)).
-    refine (ccomp _ _).
-    apply (kleisli (eta << RecUp (E.+1))).
-    refine (ccomp _ _).
-    apply (ev (A := VInf _BOT)
-              (B := discrete_cpoType (Term E.+1) _BOT)).
-    refine (PROD_fun _ _).
-    apply (KLEISLI << pi1 (B := VInf _BOT)).
-    apply (pi2 (A := VInf -=>
-      discrete_cpoType (Term E.+1) _BOT)).
-  Defined.
+Los casos funcional y de aplicación implementan, respectivamente, las dos
+primeras ecuaciones de la Definición 2 de la @cap-reificacion. En `FunCase`, la
+función semántica se aplica a la variable fresca `inNat E`; en `AppCase`, ambos
+componentes se reifican y luego se combinan mediante `APP`:
 
-  Definition DAPP (E : Env) :
-      (discrete_cpoType (Term E) * discrete_cpoType (Term E)) =->
-      discrete_cpoType (Term E).
-    apply (SimpleBOp (A := Term E) (B := Term E)
-                     (C := discrete_cpoType (Term E))).
-    apply (@APP E).
-  Defined.
+```rocq
+Definition FunCase (E : Env) :
+    (VInf -=> discrete_cpoType Term _BOT) * (DInf _BOT -=> DInf _BOT) =->
+    discrete_cpoType Term _BOT.
+  refine (ccomp _ _).
+  Focus 2.
+  refine (PROD_fun _ _).
+  apply pi1.
+  apply (kleisli (eta << Unroll) << ev <<
+           <| pi2 (A := VInf -=> discrete_cpoType Term _BOT)
+            , const _ (eta (Roll (inNat E))) |>).
+  refine (ccomp _ _).
+  apply (kleisli (eta << DFUN)).
+  refine (ccomp _ _).
+  apply (ev (A := VInf _BOT) (B := discrete_cpoType Term _BOT)).
+  refine (PROD_fun _ _).
+  apply (KLEISLI << pi1 (B := VInf _BOT)).
+  apply (pi2 (A := VInf -=> discrete_cpoType Term _BOT)).
+Defined.
 
-  Definition AppCase (E : Env) :
-      (VInf -=> discrete_cpoType (Term E.+1) _BOT) *
-      (DInf * DInf) =->
-      discrete_cpoType (Term E.+1) _BOT.
-    refine (ccomp _ _).
-    apply (kleisli (eta << DAPP E.+1)).
-    refine (ccomp _ _).
-    apply (uncurry (Smash
-      (discrete_cpoType (Term E.+1))
-      (discrete_cpoType (Term E.+1)))).
-    refine (PROD_fun _ _).
-    refine (ccomp _ _).
-    apply (ev (A := VInf _BOT)
-              (B := discrete_cpoType (Term E.+1) _BOT)).
-    refine (PROD_fun _ _).
-    apply (KLEISLI << pi1 (B := DInf * DInf)).
-    apply (eta << Unroll << pi1 << pi2).
-    refine (ccomp _ _).
-    apply (ev (A := VInf _BOT)
-              (B := discrete_cpoType (Term E.+1) _BOT)).
-    refine (PROD_fun _ _).
-    apply (KLEISLI << pi1 (B := DInf * DInf)).
-    apply (eta << Unroll << pi2 << pi2).
-  Defined.
-  ```
+Definition AppCase (E : Env) :
+    (VInf -=> discrete_cpoType Term _BOT) * (DInf * DInf) =->
+    discrete_cpoType Term _BOT.
+  refine (ccomp _ _).
+  apply (kleisli (eta << DAPP)).
+  refine (ccomp _ _).
+  apply (uncurry (Smash (discrete_cpoType Term) (discrete_cpoType Term))).
+  refine (PROD_fun _ _).
+  refine (ccomp _ _).
+  apply (ev (A := VInf _BOT) (B := discrete_cpoType Term _BOT)).
+  refine (PROD_fun _ _).
+  apply (KLEISLI << pi1 (B := DInf * DInf)).
+  apply (eta << Unroll << pi1 << pi2).
+  refine (ccomp _ _).
+  apply (ev (A := VInf _BOT) (B := discrete_cpoType Term _BOT)).
+  refine (PROD_fun _ _).
+  apply (KLEISLI << pi1 (B := DInf * DInf)).
+  apply (eta << Unroll << pi2 << pi2).
+Defined.
+```
 
-  Para reunir esos casos se usa el morfismo distributivo `dist`, que transforma
-  un producto con una suma en una suma de productos.
+Para reunir esos casos se usa el morfismo distributivo `dist`, que transforma un
+producto con una suma en una suma de productos:
 
-  ```rocq
-  Definition dist {A B C : cpoType} :
-      (A * (B + C)) =-> ((A * B) + (A * C)).
-    assert (H : (B + C) =-> (A -=> ((A * B) + (A * C)))).
-    refine (SUM_fun _ _).
-    apply (CURRY (D0 := B)).
-    refine (ccomp _ _). apply (in1 (A := A * B)).
-    refine (PROD_fun _ _). apply pi2. apply pi1.
-    apply (CURRY (D0 := C)).
-    refine (ccomp _ _). apply (in2 (B := A * C)).
-    refine (PROD_fun _ _). apply pi2. apply pi1.
-    apply ((UNCURRY H) << <| pi2, pi1 |>).
-  Defined.
-  ```
+```rocq
+Definition dist {A B C : cpoType} :
+    (A * (B + C)) =-> ((A * B) + (A * C)).
+  assert (H : (B + C) =-> (A -=> ((A * B) + (A * C)))).
+  refine (SUM_fun _ _).
+  apply (CURRY (D0 := B)).
+  refine (ccomp _ _). apply (in1 (A := A * B)).
+  refine (PROD_fun _ _). apply pi2. apply pi1.
+  apply (CURRY (D0 := C)).
+  refine (ccomp _ _). apply (in2 (B := A * C)).
+  refine (PROD_fun _ _). apply pi2. apply pi1.
+  apply ((UNCURRY H) << <| pi2, pi1 |>).
+Defined.
+```
 
-  Finalmente, `Rrec` reúne mediante coproductos los casos de variable, función y
-  aplicación. La función `R` es el menor punto fijo de ese funcional; no existen
-  términos cerrados en el lenguaje considerado, por lo que para el entorno vacío
-  la reificación es siempre indefinida.
+El funcional `RrecC` reúne, mediante coproductos, los tres casos (variable,
+función y aplicación). `Rrec` es el funcional sobre toda la familia y `R E` es su
+menor punto fijo en el nivel `E`:
 
-  ```rocq
-  Definition Rrec (E : Env) :
-      (VInf -=> discrete_cpoType (Term (S E)) _BOT) =->
-      (VInf -=> discrete_cpoType (Term (S E)) _BOT).
-  Proof.
-    refine (exp_fun _).
-    refine (ccomp _ _).
-    Focus 2.
-    apply dist.
-    refine (ccomp _ _).
-    Focus 2.
-    refine (SUM_fun _ _).
-    refine (ccomp _ _).
-    apply (in1 (B :=
-      (VInf -=> discrete_cpoType (Term (S E)) _BOT) *
-      (DInf * DInf))).
-    apply dist.
-    apply in2.
-    refine (SUM_fun (SUM_fun _ _) _).
-    apply (eta << FVar E << pi2).
-    apply FunCase.
-    apply AppCase.
-  Defined.
+```rocq
+Definition RFam (E : Env) : cpoType :=
+  VInf -=> discrete_cpoType Term _BOT.
 
-  Definition R (E : Env) :
-      VInf =-> discrete_cpoType (Term E) _BOT :=
-    match E with
-    | O   => const _ PBot
-    | S E => fixp (Rrec E)
-    end.
-  ```
+Definition RAmb : cpoType := prodi_cpoType RFam.
+
+Definition RrecC (E : Env) : RAmb =-> (VInf -=> discrete_cpoType Term _BOT).
+  refine (exp_fun _).
+  refine (ccomp _ _).
+  Focus 2.
+  apply dist.
+  refine (ccomp _ _).
+  Focus 2.
+  refine (SUM_fun _ _).
+  refine (ccomp _ _).
+  apply (in1 (B := RAmb * (DInf * DInf))).
+  apply dist.
+  apply in2.
+  refine (SUM_fun (SUM_fun _ _) _).
+  apply (eta << FVar E << pi2).
+  apply (FunCase E << <| PROJ RFam E.+1 << pi1 (B := DInf _BOT -=> DInf _BOT)
+                       , pi2 (A := RAmb) |>).
+  apply (AppCase E << <| PROJ RFam E << pi1 (B := DInf * DInf)
+                       , pi2 (A := RAmb) |>).
+Defined.
+
+Definition Rrec : RAmb =-> RAmb :=
+  PRODI_fun (fun E => RrecC E).
+
+Definition R (E : Env) : VInf -=> discrete_cpoType Term _BOT :=
+  PROJ RFam E (fixp Rrec).
+```
+
+=== Formas normales y normalización
+
+Los términos neutrales y las formas normales se definen mutuamente, y la
+normalización por evaluación compone la evaluación con la reificación:
+
+```rocq
+Inductive Ne : Term -> Prop :=
+| Ne_var : forall n : Var, Ne (VAR n)
+| Ne_app : forall (k v : Term), Ne k -> Nf v -> Ne (APP k v)
+with Nf : Term -> Prop :=
+| Nf_fun : forall e : Term, Nf e -> Nf (FUN e)
+| Nf_ne  : forall k : Term, Ne k -> Nf k.
+
+Definition nbe (E : Env) (t : Term) : discrete_cpoType Term _BOT :=
+  KLEISLI (R E) (⟦ t ⟧ (id_env E)).
+```
+
+Aquí `id_env E` es el entorno canónico que asigna a la ranura $n$ la marca
+`inNat (E - n)`, de modo que `nbe E t` reifica la semántica de `t` en ese
+entorno.
+
+=== Propiedades principales
+
+Los teoremas centrales de la @cap-reificacion están formalizados:
+
++ *Debilitamiento y sustitución* (`Weakening.v`): el tipado es estable bajo
+  renombrados (`TypeJudge_ren`) y bajo sustituciones (`TypeJudge_sub`).
+
++ *Solidez* (`Validity.v`): todo término bien tipado es válido
+  (`TypeJudge_sound`); la igualdad tipada también es sólida (`TypedEq.v`,
+  `EqTm_sound`).
+
++ *Completitud* (`Completeness.v`): términos iguales normalizan a formas
+  normales iguales (`Completeness`), la normalización es la identidad sobre las
+  formas normales (`Lemma8_typed`) y la normalización refleja la igualdad
+  (`Reflection`).
+
++ *Corrección* (`Correctness.v`): todo término bien tipado es igual a la
+  reificación de su valor (`Correctness`). Este último teorema está pendiente:
+  depende de la relación lógica (`LogicalRel.v`), aún en desarrollo.
 
 // =============================================================================
 // CAPÍTULO 5 — Conclusión
