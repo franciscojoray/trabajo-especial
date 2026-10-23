@@ -807,18 +807,48 @@ necesitamos saber que $R([|t|]) ≡ R([|t'|])$.
 
 == Un modelo adecuado para NbE
 
-Nuestro modelo para la normalización se basa en un dominio [@abramsky1994handbook, @scott1971continuous, @smth1982category] procedente de la
-solución D de la siguiente ecuación de dominios
+Partamos del dominio $D ≈ [D arrow D]$ del capítulo @cap-definicion y veamos si nos
+sirve para reificar. Ya dijimos qué queremos de $R$: dado un elemento de $D$,
+devolver el término que ese elemento representa. Probemos con algunos ejemplos.
+
+La identidad $lambda sans("q")$ tiene por semántica
+
+$ [| lambda sans("q") |] space eta = "lam" (a ↦ [| sans("q") |] space (eta, a)) = "lam" (a ↦ a) . $
+
+El elemento $a ↦ a$ es la función identidad en $D$; por lo tanto debe cumplirse
+$R space ("lam" (a ↦ a)) = lambda sans("q")$.
+
+Consideremos ahora la identidad aplicada a sí misma, $(lambda sans("q")) space @ space (lambda sans("q"))$, que
+sabemos (por beta) que es igual a la identidad. Su semántica se calcula así:
+
+$ [| (lambda sans("q")) space @ space (lambda sans("q")) |] space eta = phi ([| lambda sans("q") |] space eta) space ([| lambda sans("q") |] space eta) $
+
+$ = phi space ("lam" (a ↦ a)) space ("lam" (a ↦ a)) = (a ↦ a) space ("lam" (a ↦ a)) = "lam" (a ↦ a) . $
+
+Otra vez el resultado es $"lam" (a ↦ a)$, así que $R space ("lam" (a ↦ a)) = lambda sans("q")$. En otras
+palabras, la semántica *colapsó* la aplicación: $R$ devuelve directamente la forma
+normal, sin reducir paso a paso.
+
+El problema aparece con los términos *neutrales*. Tomemos la aplicación de una
+variable a otra, $sans("q") space @ space (sans("q") sans("p"))$: su semántica es
+
+$ [| sans("q") space @ space (sans("q") sans("p")) |] space eta = phi space (eta(0)) space (eta(1)) . $
+
+Aquí $eta(0)$ y $eta(1)$ son los valores que el entorno les asigna a las dos variables. Para
+que $R$ devuelva el término $sans("q") space @ space (sans("q") sans("p"))$, tendría que reconocer que el
+resultado provino de aplicar la variable $sans("q")$ a la variable $sans("q") sans("p")$. Pero en el
+dominio $[D arrow D]$ todo valor es una función, y una variable no deja ninguna huella
+de ser variable: $R$ no puede reconstruir el término neutral a partir de su
+semántica.
+
+El dominio $[D arrow D]$ alcanza para *evaluar* —una variable denota lo que el
+entorno le asigna y una aplicación denota la aplicación de una función—, pero no
+alcanza para *reificar*: para volver de la semántica a la sintaxis necesitamos
+distinguir en el dominio las *variables* y las *aplicaciones neutrales*. Por eso
+extendemos $D$ con dos componentes más, resolviendo la ecuación de dominios
+[@abramsky1994handbook, @scott1971continuous, @smth1982category]:
 
 #math.equation(block: true, numbering: "(3.1)", $ D ≈ [D → D] ⊕ "Nat"_⊥ ⊕ D × D ; $)
-
-En el capítulo @cap-definicion usamos el dominio $D ≈ [D arrow D]$, en el que todo
-valor es una función. Eso basta para *evaluar*: una variable denota lo que el
-entorno le asigna y una aplicación denota la aplicación de una función. Pero no
-basta para *reificar*, es decir, para volver de la semántica a la sintaxis. Para
-leer de vuelta un valor como término necesitamos distinguir en el dominio dos
-clases de objetos que $[D arrow D]$ no puede representar: las *variables* y las
-*aplicaciones neutrales*.
 
 Una variable, como $sans("q")$, es un átomo que no es una función; para reificarla
 hay que poder reconocerla como tal. Reservamos entonces un componente plano de
