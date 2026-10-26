@@ -304,15 +304,13 @@ una abstracción $lambda t$ denote una *función*, y que una aplicación
 $t space @ space r$ denote la *aplicación* de la función denotada por $t$ al valor
 denotado por $r$. Pero esta idea choca con una dificultad.
 
-Supongamos que hubiera un conjunto $S$ de valores con la propiedad de que toda
-función de $S$ en $S$ es también un valor, es decir, tal que $S arrow S subset.eq S$. A
-partir de una función $f in S arrow S$ cualquiera, definamos $p in S arrow S$ por
-$p space x = f space (x space x)$. Como $p in S arrow S subset.eq S$, el propio $p$ es un valor y
-podemos aplicárselo a sí misma: $p space p = f space (p space p)$. Es decir, $p space p$ es un
-valor que $f$ deja fijo: si las funciones son valores, *toda* función de $S$ en
-$S$ tiene un punto fijo. Pero eso es falso apenas $S$ tiene dos elementos: la
-función que intercambia dos valores no deja ninguno fijo. Contradicción
-@reynolds1998theories.
+La dificultad está en la *auto-aplicación*. Si un conjunto $S$ de valores
+incluyera a todas las funciones de $S$ en $S$, entonces toda función
+$f in S arrow S$ tendría un punto fijo: con $p space x = f space (x space x)$ se obtiene
+$p space p = f space (p space p)$. Pero hay funciones sin puntos fijos: si $S$ contiene
+dos elementos distintos $0$ y $1$, la función que los intercambia —$f space 0 = 1$ y
+$f space 1 = 0$— no deja fijo a ninguno. Contradicción, análoga a la paradoja de
+Russell @reynolds1998theories.
 
 El cálculo lambda puede *escribir* este argumento. Si la función $f$ está denotada
 por el término $e$, el término $lambda (e space @ space (sans("q") space @ space sans("q")))$ denota la
