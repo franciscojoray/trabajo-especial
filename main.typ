@@ -498,6 +498,12 @@ Observemos que las variables de índice mayor no necesitan una regla propia. Por
 $sans("q") sans("p")^i$ es $sans("q")$ con la sustitución $sans("p")^i$ (la composición $i$ veces de $sans("p")$
 consigo misma) aplicada.
 
+_Lema (Estabilidad)._ El tipado es estable bajo debilitamiento y sustitución: si
+$Gamma tack.r t : A$, entonces $Gamma .B tack.r t space sans("p") : A$; y si además $Delta tack.r sigma : Gamma$ es una
+sustitución bien tipada, entonces $Delta tack.r t space sigma : A$. Ambos hechos se prueban por
+inducción sobre la derivación de $Gamma tack.r t : A$; los usaremos en el capítulo
+@cap-reificacion.
+
 Veamos la deducción completa del tipo de un término con una variable libre.
 Para $lambda ((sans("q") sans("p")) space @ space sans("q"))$ —el término $lambda x. y space x$— bajo un
 contexto con una única suposición de tipo $A arrow B$, el árbol de derivación es
@@ -577,14 +583,14 @@ afuera.
 <sec-igualdad>
 
 Dos términos tipados se consideran *iguales* según una teoría ecuacional que
-codifica el comportamiento de las funciones. Las dos reglas principales son la
-*beta*, que describe la aplicación, y la *eta*, que describe la extensionalidad.
+codifica el comportamiento de las funciones. La regla principal es la *beta*,
+que describe la aplicación. Siguiendo a Fridlender y Pagano
+@fridlender2013typechecking, omitimos la regla *eta*: su ausencia simplifica la
+semántica, como veremos en el capítulo @cap-reificacion.
 
 #figure(
   grid(
-    columns: (1fr, 1fr),
-    column-gutter: 1em,
-    row-gutter: 1.5em,
+    columns: (1fr),
     [
       #smallcaps("(beta)")
       $ frac(
@@ -592,27 +598,18 @@ codifica el comportamiento de las funciones. Las dos reglas principales son la
           Gamma tack.r (lambda t) space @ space r = t space (id_Gamma, r) : B
         ) $
     ],
-    [
-      #smallcaps("(eta)")
-      $ frac(
-          Gamma tack.r t : A arrow B,
-          Gamma tack.r lambda ((t sans("p")) space @ space sans("q")) = t : A arrow B
-        ) $
-    ],
   ),
-  caption: [Reglas de igualdad de términos en lambda_flechita.]
+  caption: [Regla beta de lambda_flechita.]
 )
 
 La regla #smallcaps("(beta)") dice que aplicar una abstracción a un argumento es
 sustituir el argumento por la variable ligada: el lado derecho $t space (id_Gamma, r)$
 es, como vimos en la @sec-sustituciones, el resultado de reemplazar $sans("q")$ por $r$
-en $t$. La regla #smallcaps("(eta)") dice que toda función es igual a la
-abstracción que la aplica a su argumento: dos funciones son iguales si coinciden
-en todo argumento.
+en $t$.
 
-Sobre estas dos reglas la igualdad se cierra como una *congruencia*, con las
-reglas de la @congruencia: las tres primeras hacen de ella una relación de
-equivalencia, y las dos últimas la hacen compatible con los constructores.
+Sobre esta regla la igualdad se cierra como una *congruencia*, con las reglas de
+la @congruencia: las tres primeras hacen de ella una relación de equivalencia, y
+las dos últimas la hacen compatible con los constructores.
 
 #figure(
   grid(
@@ -927,6 +924,98 @@ que no pueden calcularse permanecen indefinidas. Finalmente, el teorema de
 punto fijo de la semántica de dominios garantiza que este menor punto fijo
 existe cuando $F$ es continuo, que es precisamente la propiedad que se verifica
 para la construcción formal utilizada en el capítulo siguiente.
+
+== Estructura aplicativa y valores neutrales
+
+Para interpretar la aplicación definimos una operación $·$ sobre $D$. El caso de
+las funciones es el del capítulo @cap-definicion: si $d = "lam" space f$, entonces
+$d · e = f space e$. El caso nuevo es el de los *valores neutrales*: las variables
+$"Var" space i$ y las aplicaciones $"App" d' e$ con $d'$ neutral. Estos no son funciones,
+pero deben poder aplicarse para interpretar los términos neutrales. Definimos
+entonces
+
+$ d · e = cases(
+  f space e & "si" d = "lam" f,
+  "App" d e & "si" d "es neutral",
+  bot & "en otro caso"
+) $
+
+Así, aplicar un valor neutral a un valor $e$ da el neutral $"App" d e$: la aplicación
+preserva los neutrales.
+
+== Tipos semánticos
+
+Damos la interpretación semántica de los tipos. En el capítulo @cap-definicion
+(sección @sec-semantica-tipada) interpretamos cada tipo como un subconjunto de $D$ de
+manera ingenua; aquí la refinamos siguiendo a Fridlender y Pagano
+@fridlender2013typechecking. La novedad es que los valores neutrales habitan
+*todo* tipo semántico, lo que permite interpretar las variables de cualquier tipo
+sin recurrir a la regla eta.
+
+_Definición_ 3 (Tipos semánticos). Para cada tipo $A$ definimos el conjunto
+$chevron A chevron.r$ de los *términos semánticos* de tipo $A$, por recursión sobre $A$:
+
+$ chevron ★ chevron.r = "Ne"_D $
+
+$ chevron A arrow B chevron.r = { d in D | d · e in chevron B chevron.r "para todo" e in chevron A chevron.r } union "Ne"_D . $
+
+donde $"Ne"_D$ denota el conjunto de valores neutrales. Escribimos
+$d in chevron A chevron.r$ para decir que $d$ es un término semántico de tipo $A$.
+
+_Lema (Neutrales en todo tipo)._ Todo valor neutral pertenece a $chevron A chevron.r$,
+para todo tipo $A$.
+
+== Validez y solidez
+
+Definimos la validez de un entorno y de un término, y probamos la solidez del
+sistema de tipos: todo término bien tipado denota un término semántico de su
+tipo.
+
+_Definición_ 4 (Validez). Un entorno $eta$ es *válido* para el contexto $Gamma$,
+escrito $Gamma models eta$, si cada componente de $eta$ es un término semántico del tipo
+correspondiente. Un término es *válido*, $Gamma models t : A$, si para todo entorno
+válido $eta$ la interpretación $[|t|] space eta$ es un término semántico de tipo $A$.
+
+_Teorema_ (Solidez). Si $Gamma tack.r t : A$, entonces $Gamma models t : A$.
+
+_Esbozo de la demostración._ Por inducción sobre la derivación de $Gamma tack.r t : A$. El
+caso de una variable usa el lema de los neutrales en todo tipo. El caso de una
+abstracción usa la definición de $F$. El caso de una aplicación distingue si la
+función denota una función —entonces se aplica— o un neutral —entonces la
+aplicación da un neutral, que está en todo tipo.
+
+== Entorno canónico y normalización
+
+Reunimos la evaluación y la reificación en una única función de normalización.
+Para evaluar un término necesitamos un entorno; usamos el *entorno canónico*,
+que asigna a cada variable un valor neutral.
+
+_Definición_ 5 (Entorno canónico y nbe). Para un contexto $Gamma$ de longitud $n$, el
+entorno canónico $rho_Gamma$ asigna a la variable de índice $i$ (contando desde la más
+reciente) el neutral $"Var" (n - i - 1)$. La *normalización por evaluación* es la
+composición de la evaluación en el entorno canónico con la reificación:
+
+$ "nbe"_Gamma (t) = R_n ([|t|] space rho_Gamma) . $
+
+== Propiedades de la normalización
+
+La función $"nbe"$ tiene las propiedades que esperamos de una normalización.
+
+_Teorema_ (Completitud). Si $Gamma tack.r t = t' : A$, entonces
+$"nbe"_Gamma (t) ≡ "nbe"_Gamma (t')$: términos iguales normalizan a la misma forma normal.
+
+_Lema_ (Identidad sobre formas normales). Si $v$ es una forma normal y
+$Gamma tack.r v : A$, entonces $"nbe"_Gamma (v) ≡ v$.
+
+_Teorema_ (Reflexión). Si $Gamma tack.r t : A$, $Gamma tack.r t' : A$ y
+$"nbe"_Gamma (t) ≡ "nbe"_Gamma (t')$, entonces $Gamma tack.r t = t' : A$.
+
+La *corrección* de la normalización —que todo término bien tipado es igual a su
+forma normal, $Gamma tack.r t = "nbe"_Gamma (t) : A$— se demuestra mediante relaciones lógicas:
+para cada tipo $A$ se define una relación entre los términos de tipo $A$ y los
+términos semánticos de $chevron A chevron.r$, y se prueba que todo término está relacionado
+con su denotación. En la formalización esta parte está en desarrollo (el teorema
+fundamental de las relaciones lógicas y la corrección están aún admitidos).
 
 // =============================================================================
 // CAPÍTULO 4 — Rocq
