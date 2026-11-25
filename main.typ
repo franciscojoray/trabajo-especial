@@ -936,11 +936,11 @@ entonces
 
 $ d · e = cases(
   f space e & "si" d = "lam" f,
-  "App" d e & "si" d "es neutral",
+  "App" d space e & "si" d "es neutral",
   bot & "en otro caso"
 ) $
 
-Así, aplicar un valor neutral a un valor $e$ da el neutral $"App" d e$: la aplicación
+Así, aplicar un valor neutral a un valor $e$ da el neutral $"App" d space e$: la aplicación
 preserva los neutrales.
 
 == Tipos semánticos
